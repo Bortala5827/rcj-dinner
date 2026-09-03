@@ -5,9 +5,8 @@
 // 密码只存在 Cloudflare Secret（ADMIN_PASSWORD），永不下发到浏览器；
 // Cookie 里只有「时间戳 + HMAC 签名」。同 IP 10 分钟内失败 8 次即锁。
 
-import { json, preflight, hmac, verifyAdmin, ensureSchema, COOKIE } from '../_lib.js';
+import { json, preflight, hmac, verifyAdmin, ensureSchema, cfg, COOKIE } from '../_lib.js';
 
-const WEEK = 7 * 24 * 60 * 60;
 const FAIL_WINDOW = 10 * 60 * 1000;
 const FAIL_MAX = 8;
 
@@ -74,5 +73,7 @@ export async function onRequestPost({ request, env }) {
 
   const ts = String(now);
   const sig = await hmac(ts, pw);
-  return json({ ok: true, authed: true }, 200, { 'Set-Cookie': `${COOKIE}=${ts}.${sig}; ${base}; Max-Age=${WEEK}` });
+  const sessionDays = cfg(env).adminSessionDays || 2;
+  const SESSION = sessionDays * 24 * 60 * 60;
+  return json({ ok: true, authed: true }, 200, { 'Set-Cookie': `${COOKIE}=${ts}.${sig}; ${base}; Max-Age=${SESSION}` });
 }

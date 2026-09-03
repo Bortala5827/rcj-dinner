@@ -68,7 +68,8 @@ export async function verifyAdmin(request, env) {
   const ts = cookie.slice(0, idx);
   const sig = cookie.slice(idx + 1);
   if (!/^\d+$/.test(ts)) return false;
-  if (Date.now() - Number(ts) > 7 * DAY) return false;
+  const days = cfg(env).adminSessionDays || 2;
+  if (Date.now() - Number(ts) > days * DAY) return false;
   return (await hmac(ts, pw)) === sig;
 }
 
@@ -89,8 +90,9 @@ export function cfg(env) {
     maxPhotos: num(env.MAX_PHOTOS, 3),
     maxPhotoBytes: num(env.MAX_PHOTO_BYTES, 300 * 1024),
     maxSongBytes: num(env.MAX_SONG_BYTES, 2 * 1024 * 1024),
-    dailyLimit: num(env.DAILY_LIMIT, 5),
-    pendingLimit: num(env.PENDING_LIMIT, 3),
+    dailyLimit: num(env.DAILY_LIMIT, 3),
+    pendingLimit: num(env.PENDING_LIMIT, 2),
+    adminSessionDays: num(env.ADMIN_SESSION_DAYS, 2),
   };
 }
 
