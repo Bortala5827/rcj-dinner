@@ -1,187 +1,193 @@
-# Dinner for You · 情侣点餐互动系统
+# Dinner for You — Couples Ordering & Date-Night System
 
-> 女的点、男的做。她点想吃的、录一首歌，你（厨师）收到邮件 → 一键进后台听歌 + 审核 → 开火 / 让她再唱一首。
-> 纯前端 + Cloudflare Pages Functions + D1 + Resend，**零服务器**，可整库迁移、可换皮售卖。
+> She picks the dishes and records a song; you (the chef) get an email with a one-click link into the admin to listen & review → "Start cooking" / "Sing another" / "Serve".
+> Pure front-end + Cloudflare Pages Functions + D1 + Resend. **Zero servers.** Fully migratable, white-label ready.
+>
+> 中文用户请看各节标题旁的小注。
+
+🟢 **Live demo:** a production instance runs at **https://dinner.955827.xyz** (custom domain). The default admin password is a temporary test value — change it before sharing (see §2).
 
 ---
 
-## 1. 它是怎么跑起来的
+## 1. How it works
 
 ```
-她打开网页
-  └─ 输邀请码（白名单）── 没码进不来
-       └─ 选菜 → 写「还想吃」→ 传参考图（canvas 自动压缩）
-            └─ 录一段歌（≤60s）
-                 └─ 留邮箱 → 提交
+She opens the page
+  └─ enters an invite code (allowlist) ── no code, no entry
+       └─ picks dishes → writes "also want" → uploads a reference photo (canvas auto-compresses)
+            └─ records a song (≤60s)
+                 └─ leaves an email → submits
                        │
-                       ├─ Resend 邮件 → 你：新订单 + 一键深链进后台
-                       └─ Resend 邮件 → 她：回执「单子进厨房了」
-       
-你在后台 /admin
-  ├─ 听歌 + 看参考图
-  ├─ 「开火」   → 她收到邮件「美食准备中」
-  ├─ 「再唱一首」→ 她收到邮件「再来一首」（原单保留，只换歌，省存储）
-  └─ 「上菜」   → 她收到邮件「上菜了」
+                       ├─ Resend email → you: new order + one-click deep link into admin
+                       └─ Resend email → her: receipt "your order is in the kitchen"
 
-存储 & 清理
-  ├─ 媒体（录音/图）默认保留 3 天 → 自动删二进制，订单元数据留着
-  ├─ 订单元数据默认保留 30 天 → 整单清掉
-  └─ 任何 API 访问顺手懒清理 + /api/gc 给外部定时器兜底
+You in the admin at /admin
+  ├─ listen to the song + view the reference photo
+  ├─ "Start cooking" → she gets "cooking now"
+  ├─ "Sing another"  → she gets "sing one more" (original order kept, only the song swaps, saves storage)
+  └─ "Serve"         → she gets "served"
+
+Storage & cleanup
+  ├─ media (audio/photos) kept 3 days by default → binary auto-deleted, order metadata kept
+  ├─ order metadata kept 30 days by default → whole order purged
+  └─ any API hit lazily GCs + /api/gc backs it up via an external timer
 ```
 
-核心是**邀请码 = 白名单**：一码一人、首次提交自动绑邮箱、可设次数 / 过期。比邮箱白名单更防骚扰（陌生人拿不到码就进不来，且每个码可单独作废）。
+The core idea is **invite code = allowlist**: one code per person, email auto-bound on first submit, with optional use-limit / expiry. It is more anti-spam than an email allowlist (a stranger with no code can't get in, and each code can be individually revoked).
 
 ---
 
-## 2. 部署（5 分钟）
+## 2. Deploy (5 minutes)
 
-环境要求：Node 18+，已登录 `wrangler`（本地 `wrangler login` 或 CI 里 `CLOUDFLARE_API_TOKEN`）。
+Requirements: Node 18+, and `wrangler` logged in locally (`wrangler login`) or a `CLOUDFLARE_API_TOKEN` available in CI.
 
 ```bash
-# 1. 进目录
+# 1. enter the directory
 cd rcj-dinner
 
-# 2. 本地预览（可选）
+# 2. local preview (optional)
 npm run dev                      # http://localhost:8788
 
-# 3. 设密钥（敏感信息走 secret，不进仓库 / 不入 git）
+# 3. set secrets (sensitive values go through secrets, never into the repo / git)
 wrangler pages secret put ADMIN_PASSWORD
 wrangler pages secret put RESEND_API_KEY
 wrangler pages secret put OWNER_EMAIL
-wrangler pages secret put SITE_URL          # 例如 https://dinner.你的域名.xyz
-wrangler pages secret put GC_KEY            # 随便一段长随机串，外部定时器用它调 /api/gc
+wrangler pages secret put SITE_URL          # e.g. https://dinner.yourdomain.xyz
+wrangler pages secret put GC_KEY            # any long random string; external timer uses it for /api/gc
 
-# 4. 建表（首次）
+# 4. create tables (first time only)
 wrangler d1 execute rcj-analytics-d1 --remote --file=./schema.sql
-#    交付给别人时改成对方自己的库（见 §5）
+#    when handing off, point this at the buyer's own database (see §5)
 
-# 5. 发布
+# 5. publish
 npm run deploy                    # = wrangler pages deploy . --project-name rcj-dinner
 ```
 
-> `wrangler.toml` 里 `[vars]` 的非敏感项（保留天数、时区等）直接可改；敏感项一律走 `secret put`，已明文写在 README 里的是 **缺省值**，不会泄漏真实凭证。
+> Non-secret vars in `wrangler.toml` (retention days, timezone, …) are editable directly; secrets always go through `secret put`. Any value shown in this README is a **placeholder default** and never a real credential.
 
-**嫌一条条敲太烦？本机一条命令搞定**（需本地装了 `wrangler` 且已登录；沙箱里没有 wrangler，不能远程跑）：
+One-command option (needs local `wrangler` installed and logged in):
 
 ```bash
 bash scripts/deploy.sh
-# 已 export 的环境变量会直接写入；否则逐个交互询问。
+# values already exported as env vars are written directly; otherwise it prompts interactively.
 ```
 
----
-
-## 3. 环境变量 / 密钥清单
-
-| 变量 | 必填 | 默认值 | 说明 |
-|------|------|--------|------|
-| `ADMIN_PASSWORD` | ✅ secret | — | 后台 `/admin` 登录密码 |
-| `RESEND_API_KEY` | ✅ secret | — | Resend 邮件（双向提醒） |
-| `OWNER_EMAIL` | ✅ secret | — | 新订单邮件发到这 |
-| `SITE_URL` | ✅ secret | `https://dinner.955827.xyz` | 用于拼邮件深链，改成你的域名 |
-| `GC_KEY` | ✅ secret | — | 外部定时器调 `/api/gc?key=` 用 |
-| `MAIL_FROM` | 可选 | `Dinner <noreply@955827.xyz>` | 发件人 |
-| `BRAND_JSON` | 可选 | 见 `_config.js` | **换皮**：`{"name":"...","tagline":"...","chef":"...","guest":"..."}` |
-| `MENU_JSON` | 可选 | 见 `_config.js` | **换菜单**：`[{"cat":"主菜","items":[{"id":"x","name":"红烧肉","mins":70}]}]` |
-| `RETENTION_DAYS` | 可选 | `3` | 媒体保留天数 |
-| `ORDER_RETENTION_DAYS` | 可选 | `30` | 订单元数据保留天数 |
-| `TZ_OFFSET` | 可选 | `8` | 邮件时间显示时区 |
-| `SONG_REQUIRED` | 可选 | `1` | 提交时是否必须录音（`0` 则唱歌可选，适合「只点菜也行」的场景） |
-| `NOTIFY_GUEST_ON_SUBMIT` | 可选 | `1` | 她提交后是否立刻发「回执」邮件（`0` 则只在你审核后发） |
-| `MAX_PHOTOS` | 可选 | `3` | 单次最多参考图 |
-| `MAX_PHOTO_BYTES` | 可选 | `307200` | 单图上限（约 300KB，压缩后） |
-| `MAX_SONG_BYTES` | 可选 | `2097152` | 单段录音上限（约 2MB） |
-| `DAILY_LIMIT` | 可选 | `5` | 每邀请码每天最多提交 |
-| `PENDING_LIMIT` | 可选 | `3` | 每邀请码最多进行中单数 |
-| `TG_BOT_TOKEN` / `TG_CHAT_ID` | 可选 | — | 站长收单 Telegram 通知（与邮件并存） |
-| `CF_ACCOUNT_ID` / `CF_API_TOKEN` / `D1_DATABASE_ID` | 仅 REST 兜底 | — | 没绑 DB binding 时用，正常绑定后不用 |
-
-完整可复制模板见 `.env.example`（注意：secret 不写进 `.env` 文件随仓库走，这里只列名字与缺省值，便于交付时对照）。
+> ⚠️ The default admin password is a temporary test value — **change it via `wrangler pages secret put ADMIN_PASSWORD` before sharing the site.**
 
 ---
 
-## 4. 换皮 / 白牌化（作为产品售卖的关键）
+## 3. Environment / Secrets
 
-**不用改一行代码**，二选一：
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `ADMIN_PASSWORD` | ✅ secret | — | Admin `/admin` login password |
+| `RESEND_API_KEY` | ✅ secret | — | Resend API key (two-way email) |
+| `OWNER_EMAIL` | ✅ secret | — | New-order notification emails are sent here |
+| `SITE_URL` | ✅ secret | `https://dinner.955827.xyz` | Used to build email deep links; set to your domain |
+| `GC_KEY` | ✅ secret | — | External timer calls `/api/gc?key=` with this |
+| `MAIL_FROM` | optional | `Dinner <noreply@955827.xyz>` | From address |
+| `BRAND_JSON` | optional | see `_config.js` | **Rebrand**: `{"name":"...","tagline":"...","chef":"...","guest":"..."}` |
+| `MENU_JSON` | optional | see `_config.js` | **Re-menu**: `[{"cat":"Main","items":[{"id":"x","name":"Braised Pork","mins":70}]}]` |
+| `RETENTION_DAYS` | optional | `3` | Media retention (days) |
+| `ORDER_RETENTION_DAYS` | optional | `30` | Order metadata retention (days) |
+| `TZ_OFFSET` | optional | `8` | Timezone used in email timestamps |
+| `SONG_REQUIRED` | optional | `1` | Require a song on submit (`0` = song optional, for "order-only" flows) |
+| `NOTIFY_GUEST_ON_SUBMIT` | optional | `1` | Email guest a receipt on submit (`0` = only after you review) |
+| `MAX_PHOTOS` | optional | `3` | Max reference photos per order |
+| `MAX_PHOTO_BYTES` | optional | `307200` | Per-photo limit (~300KB, after compression) |
+| `MAX_SONG_BYTES` | optional | `2097152` | Per-song limit (~2MB) |
+| `DAILY_LIMIT` | optional | `5` | Max submits per invite code per day |
+| `PENDING_LIMIT` | optional | `3` | Max in-progress orders per invite code |
+| `TG_BOT_TOKEN` / `TG_CHAT_ID` | optional | — | Owner Telegram notification (in addition to email) |
+| `CF_ACCOUNT_ID` / `CF_API_TOKEN` / `D1_DATABASE_ID` | REST fallback only | — | Only when no DB binding is set; normally unused |
 
-- **方案 A（推荐）**：部署后在 Cloudflare Pages 后台 `Settings → Environment variables` 设 `BRAND_JSON` / `MENU_JSON`，站点名、标语、菜单全变。
-- **方案 B**：直接改 `functions/api/_config.js` 里的 `DEFAULT_BRAND` / `DEFAULT_MENU`（适合打包成固定主题卖给不同客户）。
-
-四层防骚扰（开箱即有）：
-1. 邀请码门禁（没码进不来）
-2. 邮箱绑定（首次提交自动绑，之后该码只认这个邮箱）
-3. 频率限流（按 邀请码 / IP / 天 + 进行中单数）
-4. 蜜罐字段 + 最短填写时长（挡机器人）
+A copy-paste template is in `.env.example` (note: secrets are never written into a committed `.env`; only names + defaults are listed here for hand-off reference).
 
 ---
 
-## 5. 迁移 / 交付给买家
+## 4. Rebrand / White-label (the key to selling it as a product)
 
-**整库搬家（数据 + 媒体）**：
+**No code changes** — pick one:
+
+- **Option A (recommended):** after deploy, set `BRAND_JSON` / `MENU_JSON` in Cloudflare Pages → `Settings → Environment variables`. Site name, tagline, and menu all change.
+- **Option B:** edit `DEFAULT_BRAND` / `DEFAULT_MENU` in `functions/api/_config.js` (good for packaging a fixed theme per customer).
+
+Four anti-spam layers, out of the box:
+1. Invite-code gate (no code, no entry)
+2. Email binding (auto-bound on first submit; that code then only accepts this email)
+3. Rate limiting (by invite code / IP / day + in-progress order count)
+4. Honeypot field + minimum fill time (blocks bots)
+
+---
+
+## 5. Migrate / Hand off to a buyer
+
+**Move the whole database (data + media):**
 ```
-GET /api/admin/export?format=json&scope=all&media=1   # 含 base64 媒体，可回灌
+GET /api/admin/export?format=json&scope=all&media=1   # includes base64 media, re-importable
 ```
-新站建好后把这份 JSON 回灌进 D1 即可，零外部依赖。
+After the new site is up, replay this JSON into its D1 — zero external dependencies.
 
-**换 Cloudflare 账户 / 换库**：
-1. 新账户里 `wrangler d1 create dinner-d1` → 拿到 `database_id`
-2. 改 `wrangler.toml`：把 `database_id` 和 `database_name` 换成新的
-3. `wrangler d1 execute <新库> --remote --file=./schema.sql`
-4. 重新 `wrangler pages secret put` 一遍密钥
-5. （可选）绑定 R2：取消 `wrangler.toml` 里 `[[r2_buckets]]` 注释，媒体自动改存 R2，D1 只留元数据，**代码零改动**
+**Change Cloudflare account / database:**
+1. In the new account: `wrangler d1 create dinner-d1` → get the `database_id`
+2. Edit `wrangler.toml`: change the project `name` and the `d1_databases` `database_id`
+3. `wrangler d1 execute <new-db> --remote --file=./schema.sql`
+4. Re-run `wrangler pages secret put` for all secrets
+5. (Optional) Bind R2: uncomment `[[r2_buckets]]` in `wrangler.toml` — media auto-moves to R2, D1 keeps only metadata, **zero code changes**
 
-**换域名**：改 `SITE_URL` 这一个变量即可（影响邮件深链）。
-
----
-
-## 5.1 自动化（GitHub Actions，满足「定期导出 + 3 天自动清理」）
-
-Cloudflare **Pages** Functions 没有 cron，清理靠两条腿：① 任意接口访问顺手懒清理；② **外部定时器兜底**，站点长期没人访问时由 GitHub Actions 定时 ping。
-
-本仓库自带两个 workflow（在 GitHub 跑，不需要本地 wrangler）：
-
-| 文件 | 作用 | 默认频率 |
-|------|------|----------|
-| `.github/workflows/gc-keepalive.yml` | 定时调 `/api/gc?key=` 触发媒体/订单清理 | 每 6 小时 |
-| `.github/workflows/backup.yml` | 调 `/api/admin/export?format=json&media=1&key=` 整库备份（含 base64 媒体），存 30 天 Artifact | 每周一 |
-
-**启用前在仓库 `Settings → Secrets and variables → Actions` 加两个 secret：**
-- `SITE_URL`：例如 `https://dinner.你的域名.xyz`
-- `GC_KEY`：与部署时 `wrangler pages secret put GC_KEY` 填的同一个长随机串（导出接口也复用它鉴权，无需后台登录态）
-
-导出接口原本只认管理员 Cookie，现已加 `key=<GC_KEY>` 兜底（见 `functions/api/admin/export.js`），所以 CI 能免登录触发备份。
+**Change domain:** change only the `SITE_URL` variable (affects email deep links).
 
 ---
 
-## 6. 目录结构
+## 5.1 Automation (GitHub Actions — "periodic export + 3-day auto-cleanup")
+
+Cloudflare **Pages** Functions have no cron; cleanup runs on two legs: ① any request lazily GCs, and ② **an external timer as backstop** so the site still cleans up when nobody visits.
+
+Two workflows ship in this repo (run on GitHub, no local wrangler needed):
+
+| File | Purpose | Default frequency |
+|------|---------|-------------------|
+| `.github/workflows/gc-keepalive.yml` | pings `/api/gc?key=` to trigger media/order cleanup | every 6 hours |
+| `.github/workflows/backup.yml` | calls `/api/admin/export?format=json&media=1&key=` for a full backup (with base64 media), stored as a 30-day Artifact | every Monday |
+
+**Before enabling, add two Actions secrets** in `Settings → Secrets and variables → Actions`:
+- `SITE_URL`: e.g. `https://dinner.yourdomain.xyz`
+- `GC_KEY`: the same long random string used for `wrangler pages secret put GC_KEY` (the export endpoint reuses it for auth, so CI needs no admin login)
+
+The export endpoint originally only accepted an admin cookie; it now also accepts `key=<GC_KEY>` as a fallback (see `functions/api/admin/export.js`), so CI can trigger backups without a session.
+
+---
+
+## 6. Project structure
 
 ```
 rcj-dinner/
-├─ wrangler.toml              # 部署配置（交付改 name + d1_databases 两处）
+├─ wrangler.toml              # deploy config (for hand-off, change project name + d1_databases id)
 ├─ package.json               # dev / deploy / check / db:init
-├─ schema.sql                 # 5 张表，全部 dinner_ 前缀隔离
-├─ index.html + assets/       # 点餐端（门禁→菜单→参考图→录音→提交→进度）
-├─ admin.html + assets/admin.js  # 厨师后台（审核 / 邀请码 / 导出 / 清理）
+├─ schema.sql                 # 5 tables, all `dinner_`-prefixed and isolated
+├─ index.html + assets/       # ordering UI (gate → menu → reference photo → record → submit → progress)
+├─ admin.html + assets/admin.js  # chef admin (review / invite codes / export / cleanup)
 ├─ functions/api/
-│  ├─ _lib.js                 # 共享层：CORS/HMAC/D1双通道/媒体/GC/邀请码
-│  ├─ _config.js              # 品牌/菜单/邮件模板（换皮只改这）
-│  ├─ _notify.js              # 双向邮件（notifyOwner / notifyGuest）
-│  ├─ config.js               # GET /api/config?k=邀请码（门禁 + 拉菜单）
-│  ├─ order.js                # POST /api/order（新点单 / 重唱）
-│  ├─ order/status.js         # GET 进度
-│  ├─ order/media/[id].js     # GET 媒体二进制
-│  ├─ admin/login.js          # 登录 / 登录态
-│  ├─ admin/orders.js         # 列表 / 审核动作
-│  ├─ admin/invites.js        # 邀请码管理
-│  ├─ admin/export.js         # JSON / CSV 导出
-│  └─ gc.js                   # 外部定时器触发清理
-└─ scripts/check-syntax.mjs   # 提交前语法门禁：node scripts/check-syntax.mjs
+│  ├─ _lib.js                 # shared layer: CORS / HMAC / D1 dual-channel / media / GC / invite codes
+│  ├─ _config.js              # brand / menu / email templates (change these to rebrand)
+│  ├─ _notify.js              # two-way email (notifyOwner / notifyGuest)
+│  ├─ config.js               # GET /api/config?k=<code> (gate + load menu)
+│  ├─ order.js                # POST /api/order (new order / re-sing)
+│  ├─ order/status.js         # GET progress
+│  ├─ order/media/[id].js     # GET media binary
+│  ├─ admin/login.js          # login / session
+│  ├─ admin/orders.js         # list / review actions
+│  ├─ admin/invites.js        # invite-code management
+│  ├─ admin/export.js         # JSON / CSV export
+│  └─ gc.js                   # external-timer cleanup trigger
+└─ scripts/check-syntax.mjs   # pre-commit syntax gate: node scripts/check-syntax.mjs
 ```
 
 ---
 
-## 7. 提交前自检
+## 7. Pre-commit self-check
 
 ```bash
-npm run check     # 校验 functions + 前端 JS + 内联脚本，防跨行引号等污染
+npm run check     # validates functions + front-end JS + inline scripts (catches cross-line quote corruption)
 ```
-所有 SQL 均走预编译参数；媒体存储双通道（R2 优先、D1 兜底）。
+All SQL uses prepared parameters; media storage is dual-channel (R2 first, D1 fallback).
