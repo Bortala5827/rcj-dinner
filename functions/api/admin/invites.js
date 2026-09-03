@@ -47,6 +47,7 @@ export async function onRequestGet({ request, env }) {
       used: Number(r.used),
       expires: Number(r.expires),
       active: !!Number(r.active),
+      protected: !!Number(r.protected),
       created: Number(r.created),
       orders: cmap[r.code] || 0,
       link: `${site}/?k=${r.code}`,
@@ -89,9 +90,10 @@ export async function onRequestPost({ request, env }) {
     }
     if (!code) return json({ ok: false, error: '生成失败，再试一次' }, 500);
 
+    const prot = body.protected === true ? 1 : 0;
     await q.run(
-      'INSERT INTO dinner_invites (code, label, email, lock_email, max_uses, used, expires, active, created) VALUES (?,?,?,?,?,0,?,1,?)',
-      [code, label, email, lockEmail, maxUses, days ? now + days * DAY : 0, now]
+      'INSERT INTO dinner_invites (code, label, email, lock_email, max_uses, used, expires, active, protected, created) VALUES (?,?,?,?,?,0,?,1,?,?)',
+      [code, label, email, lockEmail, maxUses, days ? now + days * DAY : 0, prot, now]
     );
     return json({ ok: true, code, link: `${site}/?k=${code}` });
   }
@@ -108,13 +110,14 @@ export async function onRequestPost({ request, env }) {
     const active = body.active === undefined ? Number(inv.active) : body.active ? 1 : 0;
     const lockEmail = body.lockEmail === undefined ? Number(inv.lock_email) : body.lockEmail ? 1 : 0;
     const maxUses = body.maxUses === undefined ? Number(inv.max_uses) : Math.max(0, Math.floor(Number(body.maxUses) || 0));
+    const prot = body.protected === undefined ? Number(inv.protected) : body.protected ? 1 : 0;
     let expires = Number(inv.expires);
     if (body.expiresDays !== undefined) {
       const d = Math.max(0, Math.floor(Number(body.expiresDays) || 0));
       expires = d ? now + d * DAY : 0;
     }
-    await q.run('UPDATE dinner_invites SET label = ?, email = ?, lock_email = ?, max_uses = ?, expires = ?, active = ? WHERE code = ?', [
-      label, email, lockEmail, maxUses, expires, active, code,
+    await q.run('UPDATE dinner_invites SET label = ?, email = ?, lock_email = ?, max_uses = ?, expires = ?, active = ?, protected = ? WHERE code = ?', [
+      label, email, lockEmail, maxUses, expires, active, prot, code,
     ]);
     return json({ ok: true });
   }
@@ -125,6 +128,9 @@ export async function onRequestPost({ request, env }) {
   }
 
   if (action === 'delete') {
+    if (Number(inv.protected) && String(url.searchParams.get('force')) !== '1') {
+      return json({ ok: false, error: '这个码是受保护的（常驻码），不能随手删；确认要删请带 force=1', protected: true }, 409);
+    }
     const n = await q.first('SELECT COUNT(*) AS n FROM dinner_orders WHERE code = ?', [code]);
     if (Number(n && n.n) > 0 && String(url.searchParams.get('force')) !== '1') {
       return json({ ok: false, error: `这个码下还有 ${n.n} 张单，确认要删就带 force=1（订单会保留）`, orders: Number(n.n) }, 409);

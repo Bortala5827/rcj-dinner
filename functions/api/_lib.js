@@ -201,6 +201,14 @@ const DDL = [
 export async function ensureSchema(env) {
   const q = db(env);
   for (const sql of DDL) await q.run(sql);
+  // migration: add `protected` column to invites (idempotent; existing prod tables predate it)
+  try {
+    const cols = await q.all('PRAGMA table_info(dinner_invites)');
+    const has = (cols || []).some((c) => String(c.name || '').toLowerCase() === 'protected');
+    if (!has) await q.run('ALTER TABLE dinner_invites ADD COLUMN protected INTEGER NOT NULL DEFAULT 0');
+  } catch (e) {
+    /* column may already exist; ignore */
+  }
   return q;
 }
 
