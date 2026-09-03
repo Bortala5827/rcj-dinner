@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>私人厨房</title>
+<link rel="stylesheet" href="/assets/dinner.css">
+</head>
+<body>
+
+<!-- 门禁：没有有效邀请码时，只有这一屏 -->
+<div class="gate hide" id="gate">
+  <h1 id="gateTitle">私人厨房</h1>
+  <p id="gateMsg">这间厨房只对一个人开门。</p>
+</div>
+
+<div class="wrap hide" id="app">
+
+  <div class="top">
+    <h1 id="brandName">今晚吃什么</h1>
+    <div class="sub" id="tagline"></div>
+    <div class="who" id="whoLine"></div>
+  </div>
+
+  <div class="msg info hide" id="openHint"></div>
+
+  <!-- ─────── 点餐 ─────── -->
+  <div id="panelOrder">
+
+    <div class="card">
+      <div class="sec-h">
+        <span class="n">01</span>
+        <h2>想吃什么</h2>
+        <span class="hint" id="pickCount">还没点</span>
+      </div>
+      <div id="menu"></div>
+    </div>
+
+    <div class="card">
+      <div class="sec-h"><span class="n">02</span><h2>菜单上没有的</h2></div>
+      <label class="fl" for="wish">随便写，能做的我就做</label>
+      <textarea id="wish" placeholder="比如：想吃奶奶做的那种茄子，或者纯粹想喝一碗热汤"></textarea>
+
+      <div style="margin-top:16px">
+        <label class="fl">参考图 <span class="dim tiny" id="picLimit"></span></label>
+        <div class="drop" id="drop">点这里选图，或者直接拖进来</div>
+        <input type="file" id="file" accept="image/*" multiple class="hp">
+        <div class="pics" id="pics"></div>
+        <div class="hide" id="picMsg"></div>
+      </div>
+
+      <div style="margin-top:16px">
+        <label class="fl" for="serveAt">希望什么时候吃</label>
+        <input type="text" id="serveAt" placeholder="今晚八点 / 明天中午 / 随便，你方便就行">
+      </div>
+    </div>
+
+    <!-- 这一整块在被要求「再唱一首」时会被整体搬到下面的重唱区，所以单独包一层 -->
+    <div class="card" id="recSection">
+      <div class="sec-h">
+        <span class="n">03</span>
+        <h2>唱一首给他听<span class="dim" id="songReq"></span></h2>
+        <span class="hint">最长 60 秒</span>
+      </div>
+      <div class="rec" id="recBox">
+        <span class="dot"></span>
+        <span class="time" id="recTime">0:00</span>
+        <span class="meter"><i id="recMeter"></i></span>
+        <button class="btn sm" type="button" id="btnRec">开始录</button>
+        <button class="btn ghost sm hide" type="button" id="btnRedo">清掉重来</button>
+      </div>
+      <audio id="player" class="hide" controls preload="none"></audio>
+      <div class="hide" id="songMsg"></div>
+    </div>
+
+    <div class="card">
+      <div class="sec-h"><span class="n">04</span><h2>怎么找到你</h2></div>
+      <div class="row">
+        <div>
+          <label class="fl" for="gname">怎么称呼</label>
+          <input type="text" id="gname" placeholder="随便写">
+        </div>
+        <div>
+          <label class="fl" for="email">邮箱</label>
+          <input type="email" id="email" placeholder="做好了会发到这里" autocomplete="email">
+          <div class="dim tiny" id="emailNote" style="margin-top:5px"></div>
+        </div>
+      </div>
+      <!-- 蜜罐：真人看不到，机器人会填 -->
+      <input type="text" id="hp" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+    </div>
+
+    <button class="btn block" type="button" id="btnSubmit">送进厨房</button>
+    <div class="hide" id="submitMsg"></div>
+  </div>
+
+  <!-- ─────── 提交完成 / 进度 ─────── -->
+  <div class="hide" id="panelDone">
+    <div class="card soft">
+      <div class="sec-h"><h2 id="doneTitle">单子进厨房了</h2></div>
+      <div class="tiny dim">单号 <span class="mono" id="doneId"></span></div>
+      <div style="margin-top:8px" id="doneNote">他会听你唱的那首歌。过了就开火，不过就得再唱一首。</div>
+    </div>
+
+    <div id="statusBox"></div>
+
+    <div class="card hide" id="retryBox">
+      <div class="sec-h"><h2>他想再听一首</h2></div>
+      <div class="tiny dim">单号 <span class="mono" id="retryId"></span>，菜不用重新点，只要换一段录音。</div>
+      <div id="retryRecSlot" style="margin-top:14px"></div>
+      <button class="btn" type="button" id="btnRetry" style="margin-top:14px">就这首，送过去</button>
+      <div class="hide" id="retryMsg"></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span id="footText"></span>
+    <span id="retentionNote"></span>
+  </div>
+</div>
+
+<script src="/assets/order.js"></script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>厨房后台</title>
+<link rel="stylesheet" href="/assets/dinner.css">
+</head>
+<body>
+
+<!-- 登录 -->
+<div class="gate hide" id="login">
+  <h1>厨房后台</h1>
+  <p style="margin-bottom:18px">进来听歌、审单</p>
+  <input type="password" id="pw" placeholder="后台密码" autocomplete="current-password">
+  <button class="btn block" type="button" id="btnLogin" style="margin-top:12px">进去</button>
+  <div class="hide" id="loginMsg"></div>
+</div>
+
+<div class="wrap wrap-wide hide" id="dash">
+
+  <div class="top">
+    <h1>厨房后台</h1>
+    <div class="sub" id="envLine"></div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="tabs">
+    <button type="button" id="tabOrders" class="on">点单</button>
+    <button type="button" id="tabInvites">邀请码</button>
+    <button type="button" id="tabTools">导出与清理</button>
+    <button type="button" id="btnLogout" style="margin-left:auto">退出</button>
+  </div>
+
+  <!-- ─── 点单 ─── -->
+  <div id="paneOrders">
+    <div style="display:flex;gap:6px;margin:14px 0">
+      <button class="btn ghost sm on" type="button" data-filter="open">进行中</button>
+      <button class="btn ghost sm" type="button" data-filter="pending">只看待听歌</button>
+      <button class="btn ghost sm" type="button" data-filter="all">全部</button>
+    </div>
+    <div id="orderList"></div>
+  </div>
+
+  <!-- ─── 邀请码 ─── -->
+  <div class="hide" id="paneInvites">
+    <div class="card soft">
+      <div class="sec-h">
+        <h2>为什么用邀请码而不是邮箱白名单</h2>
+      </div>
+      <div class="tiny" style="line-height:1.9">
+        一码一人。她点开链接就直接进厨房，不用记密码、不用注册；<br>
+        首次提交后<b>自动把她的邮箱锁在这个码上</b>，之后换人换邮箱都进不来；<br>
+        没有有效码时，页面和接口都不会露出任何内容（不是"提示无权限"，是根本看不到菜单）；<br>
+        想扩展到多人点餐，就多发几个码，每个码的备注就是那个人。
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sec-h"><h2>新建一个</h2></div>
+      <div class="row">
+        <div>
+          <label class="fl" for="ivLabel">给谁（会显示在她页面上）</label>
+          <input type="text" id="ivLabel" placeholder="比如：老婆">
+        </div>
+        <div>
+          <label class="fl" for="ivEmail">预先绑定邮箱（可留空，首次提交自动绑）</label>
+          <input type="email" id="ivEmail" placeholder="留空就自动绑">
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div>
+          <label class="fl" for="ivMax">最多用几次（0 = 不限）</label>
+          <input type="text" id="ivMax" value="0">
+        </div>
+        <div>
+          <label class="fl" for="ivDays">几天后过期（0 = 永久）</label>
+          <input type="text" id="ivDays" value="0">
+        </div>
+      </div>
+      <label class="fl" style="margin-top:12px">
+        <input type="checkbox" id="ivLock" checked style="width:auto;margin-right:6px">
+        首次提交后锁定邮箱（推荐）
+      </label>
+      <button class="btn" type="button" id="btnNewInvite" style="margin-top:8px">生成邀请链接</button>
+      <div class="hide" id="newMsg"></div>
+    </div>
+
+    <div class="card" id="inviteList"></div>
+  </div>
+
+  <!-- ─── 导出与清理 ─── -->
+  <div class="hide" id="paneTools">
+    <div class="card">
+      <div class="sec-h"><h2>定期导出</h2><span class="hint">媒体到期会被清掉，重要的先导出来</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a class="btn ghost sm" href="/api/admin/export?format=json&amp;media=1">完整备份 JSON（含录音图片）</a>
+        <a class="btn ghost sm" href="/api/admin/export?format=json">元数据 JSON</a>
+        <a class="btn ghost sm" href="/api/admin/export?format=csv">订单表 CSV</a>
+      </div>
+      <div class="tiny dim" style="margin-top:10px">
+        完整备份可以直接回灌到另一个 D1（同 schema），这也是交付给买家时的迁移通道。<br>
+        媒体改存 R2 后，JSON 里只留 key，二进制用 <code>wrangler r2</code> 单独同步。
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sec-h"><h2>自动清理</h2></div>
+      <div class="tiny" style="line-height:1.9">
+        录音和参考图默认 <b>3 天</b>后自动删（腾存储），订单元数据保留 <b>30 天</b>。<br>
+        Pages Functions 没有 cron，所以清理有两条腿：任何接口访问时顺手检查（最小间隔 10 分钟），
+        外加 <code>/api/gc?key=&lt;GC_KEY&gt;</code> 给外部定时器兜底。
+      </div>
+      <button class="btn ghost sm" type="button" id="btnGc" style="margin-top:12px">现在清一次</button>
+      <div class="hide" id="gcMsg"></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <a href="https://955827.xyz/admin">回聚合后台</a>
+  </div>
+</div>
+
+<script src="/assets/admin.js"></script>
+</body>
+</html>

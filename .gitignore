@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Wrangler / Cloudflare local
+.wrangler/
+.dev.vars
+
+# Real secrets — never commit; template is kept
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log

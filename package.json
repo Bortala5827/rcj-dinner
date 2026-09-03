@@ -1,0 +1,15 @@
+{
+  "name": "rcj-dinner",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dinner for You — 情侣点餐互动系统（Cloudflare Pages + D1 + Resend）",
+  "scripts": {
+    "dev": "wrangler pages dev . --compatibility-date=2024-09-23",
+    "deploy": "wrangler pages deploy . --project-name rcj-dinner",
+    "check": "node scripts/check-syntax.mjs",
+    "db:init": "wrangler d1 execute rcj-analytics-d1 --remote --file=./schema.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

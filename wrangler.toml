@@ -1,0 +1,25 @@
+# Cloudflare Pages + D1 config for rcj-dinner (dinner.955827.xyz)
+# 交付/迁移时只需改 name 与 d1_databases 两处。
+name = "rcj-dinner"
+pages_build_output_dir = "."
+compatibility_date = "2024-09-23"
+
+# ── D1：默认复用 RCJ 现有库，所有表以 dinner_ 前缀隔离。
+# 交付给别人时改成对方自己的库：
+#   wrangler d1 create dinner-d1   → 把返回的 database_id 填到下面
+[[d1_databases]]
+binding = "DB"
+database_name = "rcj-analytics-d1"
+database_id = "b3198ef2-6e7c-424e-8a0f-a7b21afc1828"
+
+# ── R2（可选，第二阶段）：绑定后媒体自动改存 R2，D1 只留元数据。
+# 不绑定时媒体以 base64 存 D1（图片已 canvas 压到 ~120KB，够用）。
+# [[r2_buckets]]
+# binding = "MEDIA"
+# bucket_name = "rcj-dinner-media"
+
+[vars]
+# 非敏感配置，敏感的用 `wrangler pages secret put` 见 README
+RETENTION_DAYS = "3"        # 媒体（录音/图片）保留天数 → 到点自动清理
+ORDER_RETENTION_DAYS = "30" # 订单元数据保留天数
+TZ_OFFSET = "8"             # 邮件里显示的时区（北京 +8）
