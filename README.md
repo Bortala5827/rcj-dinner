@@ -35,6 +35,19 @@ Storage & cleanup
 
 The core idea is **invite code = allowlist**: one code per person, email auto-bound on first submit, with optional use-limit / expiry. It is more anti-spam than an email allowlist (a stranger with no code can't get in, and each code can be individually revoked).
 
+### Media storage — D1 by default (recommended for personal use)
+
+With no R2 binding, songs and photos are stored **base64-encoded in D1**. No bucket to create, no extra cost, and the 3-day GC keeps the footprint small (a ~60s recording is roughly 60–100KB).
+
+| Setup | Where media lives | When to use |
+|-------|-------------------|-------------|
+| `[[r2_buckets]]` commented out (default) | D1, base64 | **Personal use — recommended** |
+| `MEDIA` bound to R2 | R2 objects; D1 keeps metadata only | High volume / white-label hand-off |
+
+> ⚠️ On a personal instance keep `[[r2_buckets]]` commented out. Binding `MEDIA` silently switches media to R2 — intentional, but it means recordings leave D1.
+>
+> D1-mode caveat: `MAX_SONG_BYTES` (default 2MB) becomes ~2.7MB of base64 in a single row. It works, but shorter recordings keep D1 lean — and the 3-day GC deletes them anyway.
+
 ---
 
 ## 2. Deploy (5 minutes)

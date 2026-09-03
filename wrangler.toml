@@ -12,8 +12,13 @@ binding = "DB"
 database_name = "rcj-analytics-d1"
 database_id = "b3198ef2-6e7c-424e-8a0f-a7b21afc1828"
 
-# ── R2（可选，第二阶段）：绑定后媒体自动改存 R2，D1 只留元数据。
+# ── R2（可选）：绑定后媒体自动改存 R2，D1 只留元数据。
 # 不绑定时媒体以 base64 存 D1（图片已 canvas 压到 ~120KB，够用）。
+#
+# ⚠️ 个人自用实例请保持下面这段注释状态：一旦绑定 MEDIA，
+#    录音/图片会静默改存 R2、离开 D1。只有高流量或白牌交付才需要开。
+#    个人使用 D1 完全够：录音默认 3 天自动清理，配额压力可忽略。
+#
 # [[r2_buckets]]
 # binding = "MEDIA"
 # bucket_name = "rcj-dinner-media"
