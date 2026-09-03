@@ -1,0 +1,27 @@
+# 定期整库备份（满足"定期导出"需求，无需人工点 admin 链接）
+# 每周一把完整备份（含 base64 媒体，可直接回灌 D1）导出为 GitHub Artifact，
+# 保留 30 天，与订单元数据保留期一致。Artifact 仅仓库成员可见。
+#
+# 前置：仓库 Secrets 里需 SITE_URL 与 GC_KEY（同 gc-keepalive.yml）。
+# 导出接口用 GC_KEY 鉴权（与后台 Cookie 二选一），无需登录态。
+name: Weekly backup
+
+on:
+  schedule:
+    - cron: '23 3 * * 1'          # 每周一 03:23
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Export full backup (with media)
+        run: |
+          curl -fsS "${{ secrets.SITE_URL }}/api/admin/export?format=json&media=1&key=${{ secrets.GC_KEY }}" -o dinner-backup.json
+          echo "bytes: $(wc -c < dinner-backup.json)"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dinner-backup-${{ github.run_number }}
+          path: dinner-backup.json
+          retention-days: 30

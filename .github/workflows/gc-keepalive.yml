@@ -1,0 +1,22 @@
+# 自动清理兜底定时器
+# Cloudflare Pages Functions 没有 cron，站点长期无人访问时，靠这个定时 ping
+# /api/gc 来触发 3 天媒体清理 + 30 天订单元数据清理。
+#
+# 前置：在仓库 Settings → Secrets and variables → Actions 里加两个 secret：
+#   SITE_URL   例如 https://dinner.你的域名.xyz
+#   GC_KEY     与部署时 wrangler pages secret put GC_KEY 填的同一个长随机串
+name: GC keepalive
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'        # 每 6 小时一次
+  workflow_dispatch:              # 也可手动在 Actions 页点 Run workflow
+
+jobs:
+  gc:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping GC endpoint
+        run: |
+          curl -fsS "${{ secrets.SITE_URL }}/api/gc?key=${{ secrets.GC_KEY }}"
+          echo "gc done"

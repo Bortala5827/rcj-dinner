@@ -18,9 +18,11 @@ function csvCell(v) {
 }
 
 export async function onRequestGet({ request, env }) {
-  if (!(await verifyAdmin(request, env))) return json({ ok: false, error: '未登录' }, 401);
-
   const url = new URL(request.url);
+  // 管理员 Cookie 或 GC_KEY（便于外部定时器 / CI 自动备份，无需人工登录）
+  const byKey = !!String(env.GC_KEY || '').trim() && String(url.searchParams.get('key') || '') === String(env.GC_KEY).trim();
+  if (!byKey && !(await verifyAdmin(request, env))) return json({ ok: false, error: '未登录' }, 401);
+
   const format = String(url.searchParams.get('format') || 'json').toLowerCase();
   const scope = String(url.searchParams.get('scope') || 'all').toLowerCase();
   const withMedia = String(url.searchParams.get('media') || '') === '1';

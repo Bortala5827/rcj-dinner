@@ -133,6 +133,25 @@ GET /api/admin/export?format=json&scope=all&media=1   # 含 base64 媒体，可�
 
 ---
 
+## 5.1 自动化（GitHub Actions，满足「定期导出 + 3 天自动清理」）
+
+Cloudflare **Pages** Functions 没有 cron，清理靠两条腿：① 任意接口访问顺手懒清理；② **外部定时器兜底**，站点长期没人访问时由 GitHub Actions 定时 ping。
+
+本仓库自带两个 workflow（在 GitHub 跑，不需要本地 wrangler）：
+
+| 文件 | 作用 | 默认频率 |
+|------|------|----------|
+| `.github/workflows/gc-keepalive.yml` | 定时调 `/api/gc?key=` 触发媒体/订单清理 | 每 6 小时 |
+| `.github/workflows/backup.yml` | 调 `/api/admin/export?format=json&media=1&key=` 整库备份（含 base64 媒体），存 30 天 Artifact | 每周一 |
+
+**启用前在仓库 `Settings → Secrets and variables → Actions` 加两个 secret：**
+- `SITE_URL`：例如 `https://dinner.你的域名.xyz`
+- `GC_KEY`：与部署时 `wrangler pages secret put GC_KEY` 填的同一个长随机串（导出接口也复用它鉴权，无需后台登录态）
+
+导出接口原本只认管理员 Cookie，现已加 `key=<GC_KEY>` 兜底（见 `functions/api/admin/export.js`），所以 CI 能免登录触发备份。
+
+---
+
 ## 6. 目录结构
 
 ```
