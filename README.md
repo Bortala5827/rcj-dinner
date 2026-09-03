@@ -85,6 +85,8 @@ bash scripts/deploy.sh
 | `RETENTION_DAYS` | 可选 | `3` | 媒体保留天数 |
 | `ORDER_RETENTION_DAYS` | 可选 | `30` | 订单元数据保留天数 |
 | `TZ_OFFSET` | 可选 | `8` | 邮件时间显示时区 |
+| `SONG_REQUIRED` | 可选 | `1` | 提交时是否必须录音（`0` 则唱歌可选，适合「只点菜也行」的场景） |
+| `NOTIFY_GUEST_ON_SUBMIT` | 可选 | `1` | 她提交后是否立刻发「回执」邮件（`0` 则只在你审核后发） |
 | `MAX_PHOTOS` | 可选 | `3` | 单次最多参考图 |
 | `MAX_PHOTO_BYTES` | 可选 | `307200` | 单图上限（约 300KB，压缩后） |
 | `MAX_SONG_BYTES` | 可选 | `2097152` | 单段录音上限（约 2MB） |
