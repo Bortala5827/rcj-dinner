@@ -61,6 +61,13 @@ npm run deploy                    # = wrangler pages deploy . --project-name rcj
 
 > `wrangler.toml` 里 `[vars]` 的非敏感项（保留天数、时区等）直接可改；敏感项一律走 `secret put`，已明文写在 README 里的是 **缺省值**，不会泄漏真实凭证。
 
+**嫌一条条敲太烦？本机一条命令搞定**（需本地装了 `wrangler` 且已登录；沙箱里没有 wrangler，不能远程跑）：
+
+```bash
+bash scripts/deploy.sh
+# 已 export 的环境变量会直接写入；否则逐个交互询问。
+```
+
 ---
 
 ## 3. 环境变量 / 密钥清单
