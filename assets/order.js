@@ -531,10 +531,12 @@
       k = decodeURIComponent(location.hash.replace(/^#/, '').split('k=')[1].split('&')[0] || '');
     }
     if (k) {
-      try { sessionStorage.setItem('dinner_k', k); } catch (e) { /* 隐私模式 */ }
+      // 用 localStorage 长期保存：她第一次点开带码链接后，以后在这台设备上直接开站点就能进，
+      // 不用每次都带 ?k=。换码时只要再点一次带新码的链接，URL 优先并会覆盖这里的值。
+      try { localStorage.setItem('dinner_k', k); } catch (e) { /* 无痕模式 / 禁用存储时忽略 */ }
       return k;
     }
-    try { return sessionStorage.getItem('dinner_k') || ''; } catch (e) { return ''; }
+    try { return localStorage.getItem('dinner_k') || ''; } catch (e) { return ''; }
   }
 
   async function boot() {
