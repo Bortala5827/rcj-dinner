@@ -81,6 +81,7 @@ bash scripts/deploy.sh
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `ADMIN_PASSWORD` | ✅ secret | — | Admin `/admin` login password |
+| `ADMIN_SESSION_DAYS` | optional | `2` | Admin session cookie lifetime in days (shorter = safer; re-login required after it expires) |
 | `RESEND_API_KEY` | ✅ secret | — | Resend API key (two-way email) |
 | `OWNER_EMAIL` | ✅ secret | — | New-order notification emails are sent here |
 | `SITE_URL` | ✅ secret | `https://dinner.955827.xyz` | Used to build email deep links; set to your domain |
@@ -96,8 +97,8 @@ bash scripts/deploy.sh
 | `MAX_PHOTOS` | optional | `3` | Max reference photos per order |
 | `MAX_PHOTO_BYTES` | optional | `307200` | Per-photo limit (~300KB, after compression) |
 | `MAX_SONG_BYTES` | optional | `2097152` | Per-song limit (~2MB) |
-| `DAILY_LIMIT` | optional | `5` | Max submits per invite code per day |
-| `PENDING_LIMIT` | optional | `3` | Max in-progress orders per invite code |
+| `DAILY_LIMIT` | optional | `3` | Max submits per invite code per day |
+| `PENDING_LIMIT` | optional | `2` | Max in-progress orders per invite code |
 | `TG_BOT_TOKEN` / `TG_CHAT_ID` | optional | — | Owner Telegram notification (in addition to email) |
 | `CF_ACCOUNT_ID` / `CF_API_TOKEN` / `D1_DATABASE_ID` | REST fallback only | — | Only when no DB binding is set; normally unused |
 
