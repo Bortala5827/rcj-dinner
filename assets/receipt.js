@@ -73,7 +73,7 @@
 
   // 静态整张（导出/兜底用）：结构与动画版一致，只是不播动画
   function render(data) {
-    return '<div class="printer"><div class="mouth"></div>' +
+    return '<div class="printer receipt-print"><div class="mouth"></div>' +
       '<div class="paper">' + buildLines(data).join('') + '<div class="cut"></div></div></div>';
   }
 
@@ -97,7 +97,7 @@
     var lines = buildLines(data);
 
     slot.innerHTML =
-      '<div class="printer" id="receiptPrint">' +
+      '<div class="printer receipt-print">' +
         '<div class="mouth"></div>' +
         '<div class="paper" id="paperSlot"></div>' +
       '</div>' +
@@ -122,8 +122,12 @@
           return;
         }
         var html = lines[i];
-        var pause = (html.indexOf('r-sep') !== -1) ? 170 : 110; // 分隔线多停一下，更真
-        paper.insertBefore(toNode(html), cursor);
+        var pause = (html.indexOf('r-sep') !== -1) ? 200 : 130; // 分隔线多停一下，更真
+        var node = toNode(html);
+        node.classList.add('r-fresh'); // 刚“打印”出来的那笔，给个淡淡的暖光一闪
+        paper.insertBefore(node, cursor);
+        var printed = node;
+        setTimeout(function () { if (printed.parentNode) printed.classList.remove('r-fresh'); }, 420);
         i++;
         setTimeout(step, pause);
       })();
@@ -139,10 +143,29 @@
     var replay = slot.querySelector('.r-replay');
     if (replay) replay.addEventListener('click', function () { play(); });
     var pbtn = slot.querySelector('.r-print');
-    if (pbtn) pbtn.addEventListener('click', function () { print(); });
+    if (pbtn) pbtn.addEventListener('click', function () {
+      print(slot.querySelector('.printer'));
+    });
   }
 
-  function print() { window.print(); }
+  // 打印：只把“当前这张”小票交给系统打印对话框，其余整页隐藏。
+  // target 传具体的 .printer 节点；不传则取页面上第一张（兼容 Ctrl+P）。
+  var _printing = null;
+  window.addEventListener('afterprint', clearPrinting);
+  function clearPrinting() {
+    if (_printing) { _printing.classList.remove('printing'); _printing = null; }
+  }
+  function print(target) {
+    var node = (target && target.classList && target.classList.contains('printer'))
+      ? target
+      : document.querySelector('.receipt-print');
+    if (!node) return;
+    _printing = node;
+    node.classList.add('printing');
+    // 兜底：部分环境不触发 afterprint 时，3 秒后清掉标记，避免卡在打印态
+    setTimeout(clearPrinting, 3000);
+    window.print();
+  }
 
   window.DinnerReceipt = { render: render, mount: mount, print: print, buildLines: buildLines };
 })();
