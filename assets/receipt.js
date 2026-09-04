@@ -1,11 +1,11 @@
-/* rcj-dinner · 热敏打印机（从上往下吐纸）渲染
+/* rcj-dinner · 热敏打印机（米色小巧设备 + 水单从出口缓缓滚出）渲染
    纯前端：传入订单数据，返回 thermal-receipt 风格 HTML。
    由 order.js（访客端）/ admin.js（后台）调用，不依赖任何全局函数。
 
-   视觉：一台打印机（顶部出纸口）+ 热敏纸，提交后像真机一样
-   一行一行从顶部往下“打印”出来（淡入+微下沉），底部有闪烁打印头，
-   打完补一条锯齿撕口。点“重新出纸”可重播动画。
-   仅做屏幕上的热敏效果，不做打印/导出 PDF（与手机端观感一致）。 */
+   视觉：上方一台米色圆润小打印机（带品牌标签、指示灯、出纸口），
+   水单从底部出口缓缓吐出来——每一行淡入并从上往下滑入位置，
+   底部有闪烁打印头，打完补一条锯齿撕口。点"重新出纸"可重播。
+   仅做屏幕效果，不做打印/导出 PDF（与手机端观感一致）。 */
 
 (function () {
   'use strict';
@@ -20,6 +20,12 @@
     var d = new Date(ts), p = function (n) { return n < 10 ? '0' + n : '' + n; };
     return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
       ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  // 打印机机身上的品牌标签（取自 brand 配置）
+  function brandName(data) {
+    var br = (data && data.brand) || {};
+    return br.nameZh || br.name || '今晚吃什么';
   }
 
   // 一行：左标签 / 右值，两端对齐（小票常见的点阵排布）
@@ -72,8 +78,15 @@
 
   // 静态整张（兜底用）：结构与动画版一致，只是不播动画
   function render(data) {
-    return '<div class="printer"><div class="mouth"></div>' +
-      '<div class="paper">' + buildLines(data).join('') + '<div class="cut"></div></div></div>';
+    return '<div class="printer">' +
+      '<div class="printer-body">' +
+        '<span class="printer-vent"></span>' +
+        '<span class="printer-led"></span>' +
+        '<span class="printer-label">' + esc(brandName(data)) + '</span>' +
+        '<span class="printer-mouth"></span>' +
+      '</div>' +
+      '<div class="paper">' + buildLines(data).join('') + '<div class="cut"></div></div>' +
+    '</div>';
   }
 
   // 把一行 HTML 变成真实节点（template 解析，避免 innerHTML 累积转义问题）
@@ -97,7 +110,12 @@
 
     slot.innerHTML =
       '<div class="printer">' +
-        '<div class="mouth"></div>' +
+        '<div class="printer-body">' +
+          '<span class="printer-vent"></span>' +
+          '<span class="printer-led"></span>' +
+          '<span class="printer-label">' + esc(brandName(data)) + '</span>' +
+          '<span class="printer-mouth"></span>' +
+        '</div>' +
         '<div class="paper" id="paperSlot"></div>' +
       '</div>' +
       '<div class="r-tools">' +
@@ -120,7 +138,7 @@
           return;
         }
         var html = lines[i];
-        var pause = (html.indexOf('r-sep') !== -1) ? 200 : 130; // 分隔线多停一下，更真
+        var pause = (html.indexOf('r-sep') !== -1) ? 260 : 180; // 缓缓吐纸，分隔线多停一下，更真
         var node = toNode(html);
         node.classList.add('r-fresh'); // 刚“打印”出来的那笔，给个淡淡的暖光一闪
         paper.insertBefore(node, cursor);

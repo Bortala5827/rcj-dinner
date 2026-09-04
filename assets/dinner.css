@@ -354,81 +354,149 @@ table.tb code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size
   .o-head .when { margin-left: 0; width: 100%; }
 }
 
-/* ── 热敏打印机（从上往下吐纸）── */
+/* ── 热敏打印机（米色小巧设备，水单从出口缓缓滚出）── */
 .printer {
   position: relative;
-  max-width: min(348px, 100%);
-  margin: 4px auto 0;
-  background: #2b2723;
-  border-radius: 10px 10px 4px 4px;
-  box-shadow: var(--shadow);
-  overflow: hidden;
+  max-width: min(300px, 100%);
+  margin: 18px auto 0;
 }
-.printer .mouth {
-  height: 16px;
-  background: linear-gradient(#423b34, #1c1916);
-  border-radius: 10px 10px 0 0;
+
+/* 打印机机身：米色圆润小设备 */
+.printer-body {
   position: relative;
+  width: 100%;
+  height: 64px;
+  background: linear-gradient(180deg, #dcb88a 0%, #c19765 100%);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  box-shadow:
+    0 6px 16px rgba(120, 80, 40, 0.25),
+    inset 0 -3px 0 rgba(80, 50, 20, 0.20),
+    inset 0 2px 0 rgba(255, 240, 210, 0.35);
+  z-index: 3;
 }
-.printer .mouth::after {
+/* 左侧散热孔/喇叭 */
+.printer-vent {
+  width: 42px; height: 24px;
+  background: rgba(60, 38, 18, 0.45);
+  border-radius: 7px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+  position: relative;
+  flex: 0 0 auto;
+}
+.printer-vent::after {
   content: '';
-  position: absolute; left: 16px; right: 16px; top: 7px;
-  height: 2px; background: rgba(0, 0, 0, 0.45);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+  position: absolute;
+  left: -4px; right: -4px;
+  bottom: -8px;
+  height: 6px;
+  background-image: radial-gradient(circle, rgba(60, 38, 18, 0.5) 1.3px, transparent 1.7px);
+  background-size: 6px 6px;
+  background-repeat: repeat-x;
 }
-.paper {
-  background: #fffdf7;
-  color: #1a1714;
+/* 品牌标签（米色小牌） */
+.printer-label {
+  margin-left: auto;
+  margin-right: 36px;
+  background: #f5ede0;
+  color: #8b6a3a;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  letter-spacing: 0.3px;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.08);
+  white-space: nowrap;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 指示灯（绿点） */
+.printer-led {
+  position: absolute;
+  top: 10px; right: 14px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #6fcf65;
+  box-shadow: 0 0 6px #6fcf65;
+}
+/* 出纸口：机身底部的暗缝 */
+.printer-mouth {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 62%;
+  height: 6px;
+  background: rgba(35, 22, 10, 0.65);
+  border-radius: 3px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+  z-index: 4;
+}
+
+/* 热敏纸：从出口下方挂出（奶油色 + 棕字） */
+.printer .paper {
+  position: relative;
+  background: #faf6ee;
+  color: #6b4a2b;
+  width: 90%;
+  margin: -6px auto 0;  /* 微微上提，让纸顶藏进出纸口 */
+  padding: 26px 18px 14px;
+  border-radius: 0 0 8px 8px;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 13px;
-  line-height: 1.7;
-  padding: 14px 16px 12px;
+  line-height: 1.75;
+  z-index: 2;
+  box-shadow: 0 4px 12px rgba(120, 80, 40, 0.15);
+  min-height: 50px;
 }
-/* 每一笔从上往下淡入 + 微下沉，模拟逐行打印 */
+/* 每一笔从上往下滑入位置（从出纸口方向出现） */
 .paper > * {
   opacity: 0;
-  transform: translateY(10px);
-  animation: rFeed 0.3s cubic-bezier(0.22, 0.7, 0.3, 1) forwards;
+  transform: translateY(-10px);
+  animation: rFeed 0.32s cubic-bezier(0.22, 0.7, 0.3, 1) forwards;
   transition: background 0.4s ease;
 }
 @keyframes rFeed { to { opacity: 1; transform: none; } }
-/* 刚“打印”出来的一笔：暖光一闪，强化热敏吐纸的即时感 */
-.paper .r-fresh { background: rgba(194, 84, 60, 0.10); }
-/* 打印头：闪烁的红线，停在当前笔位置（始终在末尾） */
+/* 刚"打印"出来的一笔：暖光一闪 */
+.paper .r-fresh { background: rgba(194, 84, 60, 0.12); }
+/* 打印头：闪烁红线 */
 .paper .r-cursor {
   height: 2px; margin: 3px 0;
-  background: var(--accent);
+  background: #c2543c;
   opacity: 1 !important; transform: none !important;
   animation: rBlink 0.8s step-end infinite !important;
 }
 @keyframes rBlink { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
-/* 撕口：锯齿底缘 */
+/* 撕口：锯齿底缘（米色调） */
 .paper .cut {
-  height: 10px; margin: 10px -16px -12px;
-  background: repeating-linear-gradient(90deg, #fffdf7 0 5px, #e7dfd0 5px 7px);
+  height: 10px; margin: 10px -18px -14px;
+  background: repeating-linear-gradient(90deg, #faf6ee 0 5px, #d8c8a8 5px 7px);
   opacity: 1 !important; transform: none !important;
   animation: none !important;
 }
 
-/* 纸面内容排版（点阵风） */
+/* 纸面内容排版（暖棕色调） */
 .paper .r-head { text-align: center; margin-bottom: 8px; }
-.paper .r-star { font-family: var(--serif); font-size: 19px; font-weight: 600; letter-spacing: 0.04em; }
-.paper .r-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.paper .r-star { font-family: var(--serif); font-size: 19px; font-weight: 600; letter-spacing: 0.04em; color: #6b4a2b; }
+.paper .r-sub { font-size: 11px; color: #a08060; margin-top: 2px; }
 .paper .r-meta, .paper .r-extra { margin: 4px 0; }
 .paper .r-line { display: flex; justify-content: space-between; gap: 10px; }
-.paper .r-l { font-weight: 600; }
-.paper .r-r { color: var(--ink-2); white-space: nowrap; }
+.paper .r-l { font-weight: 600; color: #6b4a2b; }
+.paper .r-r { color: #8b6a3a; white-space: nowrap; }
 .paper .r-items { margin: 4px 0; }
 .paper .r-item { margin: 4px 0; }
 .paper .r-note {
-  color: var(--ink-2); font-size: 12px;
+  color: #8b6a3a; font-size: 12px;
   padding-left: 14px; white-space: pre-wrap; word-break: break-word;
 }
-.paper .r-sep { border-top: 1px dashed #d8cfbf; margin: 9px 0; }
-.paper .r-foot { text-align: center; margin-top: 10px; font-size: 12px; color: var(--muted); }
+.paper .r-sep { border-top: 1px dashed #d8c4a0; margin: 9px 0; }
+.paper .r-foot { text-align: center; margin-top: 10px; font-size: 12px; color: #a08060; }
 .paper .r-thanks { margin-top: 4px; }
 
-.r-tools { max-width: min(348px, 100%); margin: 10px auto 0; display: flex; gap: 8px; }
+.r-tools { max-width: min(300px, 100%); margin: 10px auto 0; display: flex; gap: 8px; }
 .r-tools .r-replay { flex: 0 0 auto; }
 
 /* admin 后台挂的小票：留点上下间距，跟操作按钮不打架 */
@@ -444,8 +512,6 @@ table.tb code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size
   .stat { flex: 1 1 44%; min-width: 0; }
   .o-acts { gap: 6px; }
   .o-acts .btn { flex: 1 1 auto; }
-  .printer { max-width: 100%; }
-  .r-tools { max-width: 100%; }
   .tb { display: block; width: 100%; overflow-x: auto; white-space: nowrap; }
   .tb th, .tb td { white-space: nowrap; }
 }
