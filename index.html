@@ -6,6 +6,11 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>私人厨房</title>
+<meta name="theme-color" content="#dcb88a">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="stylesheet" href="/assets/dinner.css">
 </head>
 <body>
@@ -125,5 +130,20 @@
 
 <script src="/assets/receipt.js"></script>
 <script src="/assets/order.js"></script>
+<script>
+  // PWA：注册 Service Worker，让点单页/后台可离线、可加到主屏
+  (function () {
+    try {
+      if (!('serviceWorker' in navigator)) return;
+      if (!/^https?:$/.test(location.protocol)) return;
+      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js').catch(function (e) {
+          console.warn('SW 注册失败：', e && e.message);
+        });
+      });
+    } catch (e) {}
+  })();
+</script>
 </body>
 </html>

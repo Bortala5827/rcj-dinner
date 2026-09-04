@@ -347,11 +347,35 @@ table.tb code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size
 .dim { color: var(--muted); }
 .tiny { font-size: 12px; }
 
+/* 移动端整体：贴边更紧、照顾刘海/底部安全区 */
 @media (max-width: 560px) {
   .top { padding: 30px 0 20px; }
   .top h1 { font-size: 25px; }
-  .card { padding: 16px; }
+  .card { padding: 16px 14px; }
   .o-head .when { margin-left: 0; width: 100%; }
+  /* 让点单页贴边、底部留出安全区 */
+  .wrap { padding-left: 14px; padding-right: 14px; padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+  /* 输入框触感更友好 */
+  input[type='text'], input[type='email'], textarea, select { font-size: 16px; padding: 11px 12px; }
+  .btn { padding: 13px 20px; }
+  /* 提交按钮：手机上吸底常驻，随手就点 */
+  #btnSubmit.btn.block {
+    position: sticky;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    z-index: 20;
+    box-shadow: 0 6px 20px rgba(120, 80, 40, 0.22);
+  }
+}
+
+/* 提交完成 / 进度屏：手机上居中、紧凑 */
+@media (max-width: 560px) {
+  #panelDone { margin-top: 4px; }
+  #receiptSlot { margin: 0 auto; }
+  /* 小票整体在手机上更显眼，不挤 */
+  .printer { margin-top: 14px; }
+  /* 状态卡里的文字别太宽 */
+  .o-body { font-size: 13.5px; }
+  .retentionNote { display: block; width: 100%; margin-top: 4px; }
 }
 
 /* ── 热敏打印机（米色小巧设备，水单从出口缓缓滚出）── */
