@@ -386,6 +386,46 @@
     });
   }
 
+  // 把当前选择 + 菜单元数据拼成小票数据（下单前用 state）
+  function receiptDataFromState() {
+    var idx = {};
+    (state.cfg.menu || []).forEach(function (c) {
+      (c.items || []).forEach(function (it) { idx[it.id] = it; });
+    });
+    var dishes = Object.keys(state.picked).map(function (id) {
+      var it = idx[id] || { name: id };
+      return { name: it.name, qty: state.picked[id].qty, note: state.picked[id].note || '', mins: it.mins || 0 };
+    });
+    return {
+      brand: state.cfg.brand,
+      orderId: '',
+      created: Date.now(),
+      guestName: $('gname').value.trim(),
+      dishes: dishes,
+      wish: $('wish').value.trim(),
+      serveAt: $('serveAt').value.trim(),
+      hasSong: !!state.song,
+      rounds: 1,
+    };
+  }
+
+  // 用已落库的单子拼小票数据（重看进度时用，名字都是下单时快照的）
+  function receiptDataFromOrder(o, hasSong) {
+    return {
+      brand: state.cfg.brand,
+      orderId: o.id,
+      created: o.created,
+      guestName: o.guestName || '',
+      dishes: (o.dishes || []).map(function (d) {
+        return { name: d.name, qty: d.qty, note: d.note || '', mins: d.mins || 0 };
+      }),
+      wish: o.wish || '',
+      serveAt: o.serveAt || '',
+      hasSong: !!hasSong,
+      rounds: o.rounds || 1,
+    };
+  }
+
   async function submit() {
     var msg = $('submitMsg');
     var btn = $('btnSubmit');
@@ -424,6 +464,7 @@
     show($('panelDone'), true);
     $('doneId').textContent = r.id;
     window.scrollTo(0, 0);
+    if (window.DinnerReceipt) DinnerReceipt.mount($('receiptSlot'), receiptDataFromState());
     loadStatus(r.id);
   }
 
@@ -482,6 +523,9 @@
       }).join('')}</ul>
       ${o.purged ? `<div class="msg info">录音和参考图已经按 ${Number(state.cfg.limits.retentionDays)} 天的约定清掉了，菜单记录还留着。</div>` : ''}
     </div>`;
+
+    // 小票（外卖水单风格）：用落库后的真实单子渲染，覆盖提交瞬间那张
+    if (window.DinnerReceipt) DinnerReceipt.mount($('receiptSlot'), receiptDataFromOrder(o, !!songId));
 
     // 被要求再唱一首 → 把录音区整块搬进重唱卡片（同一个实例，不复制 DOM/id）
     if (o.status === 'retry' && !o.purged) {

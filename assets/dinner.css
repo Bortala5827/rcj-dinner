@@ -353,3 +353,50 @@ table.tb code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size
   .card { padding: 16px; }
   .o-head .when { margin-left: 0; width: 100%; }
 }
+
+/* ── 水单（外卖小票风格）── */
+.receipt {
+  background: #fff;
+  color: #1a1714;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', 'Courier New', monospace;
+  max-width: 348px;
+  margin: 4px auto 0;
+  padding: 18px 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.receipt .r-head { text-align: center; margin-bottom: 10px; }
+.receipt .r-star {
+  font-family: var(--serif);
+  font-size: 19px; font-weight: 600; letter-spacing: 0.04em;
+}
+.receipt .r-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.receipt .r-meta, .receipt .r-extra { margin: 4px 0; }
+.receipt .r-line { display: flex; justify-content: space-between; gap: 10px; }
+.receipt .r-l { font-weight: 600; }
+.receipt .r-r { color: var(--ink-2); white-space: nowrap; }
+.receipt .r-items { margin: 4px 0; }
+.receipt .r-item { margin: 4px 0; }
+.receipt .r-note {
+  color: var(--ink-2); font-size: 12px;
+  padding-left: 14px; white-space: pre-wrap; word-break: break-word;
+}
+.receipt .r-sep { border-top: 1px dashed var(--line); margin: 10px 0; }
+.receipt .r-foot { text-align: center; margin-top: 12px; font-size: 12px; color: var(--muted); }
+.receipt .r-thanks { margin-top: 4px; }
+.receipt .r-print { margin-top: 14px; font-family: var(--sans); }
+
+/* 打印：只输出这张小票，适配 80mm 热敏纸 */
+@media print {
+  body * { visibility: hidden !important; }
+  #receiptPrint, #receiptPrint * { visibility: visible !important; }
+  #receiptPrint {
+    position: absolute; left: 0; top: 0;
+    width: 80mm; max-width: 80mm; margin: 0;
+    border: none; box-shadow: none; border-radius: 0;
+  }
+  .receipt .r-print { display: none !important; }
+}
