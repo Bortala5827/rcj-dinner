@@ -14,49 +14,27 @@ export const DEFAULT_BRAND = {
 
 export const DEFAULT_MENU = [
   {
-    cat: '主菜',
+    cat: '硬菜（慢炖）',
     items: [
-      { id: 'hongshaorou', name: '红烧肉', desc: '小火慢炖一小时，肥而不腻', mins: 70 },
-      { id: 'tangcupaigu', name: '糖醋排骨', desc: '酸甜挂汁，米饭杀手', mins: 45 },
-      { id: 'kelejichi', name: '可乐鸡翅', desc: '甜口，十五分钟上桌', mins: 20 },
-      { id: 'qingzhengyu', name: '清蒸鲈鱼', desc: '只放葱姜和热油', mins: 25 },
-      { id: 'huiguorou', name: '回锅肉', desc: '蒜苗和豆瓣酱', mins: 30 },
-      { id: 'niuroumian', name: '番茄牛腩', desc: '要炖久一点，别急', mins: 90 },
+      { id: 'hongshaorou', name: '红烧肉', desc: '小火慢炖，肥而不腻', mins: 70 },
+      { id: 'niuroumian', name: '番茄牛腩', desc: '炖久一点更入味', mins: 90 },
+      { id: 'qingzhengyu', name: '清蒸鱼', desc: '葱姜热油，鲜', mins: 25 },
     ],
   },
   {
-    cat: '小炒 / 素菜',
+    cat: '家常快手',
     items: [
-      { id: 'fanqiedan', name: '西红柿炒蛋', desc: '家里最常出现的那道', mins: 10 },
-      { id: 'tudousi', name: '酸辣土豆丝', desc: '脆的，不是软的', mins: 15 },
-      { id: 'ganbiandoujiao', name: '干煸豆角', desc: '费油但好吃', mins: 20 },
-      { id: 'suanrongxilan', name: '蒜蓉西兰花', desc: '装作在健康生活', mins: 10 },
-      { id: 'xiaguodoufu', name: '家常豆腐', desc: '外焦里嫩', mins: 20 },
+      { id: 'fanqiedan', name: '西红柿炒蛋', desc: '下饭', mins: 10 },
+      { id: 'tudousi', name: '酸辣土豆丝', desc: '脆口', mins: 15 },
+      { id: 'danchaofan', name: '蛋炒饭', desc: '隔夜饭更香', mins: 12 },
     ],
   },
   {
-    cat: '汤羹',
+    cat: '汤 & 甜点',
     items: [
-      { id: 'fanqiedantang', name: '番茄蛋汤', desc: '五分钟解决', mins: 8 },
-      { id: 'yumitang', name: '玉米排骨汤', desc: '慢慢煨', mins: 60 },
-      { id: 'zicaitang', name: '紫菜虾皮汤', desc: '懒人版本', mins: 6 },
-    ],
-  },
-  {
-    cat: '主食 / 夜宵',
-    items: [
-      { id: 'danchaofan', name: '蛋炒饭', desc: '隔夜饭才对', mins: 12 },
-      { id: 'zhajiangmian', name: '炸酱面', desc: '酱要自己炒', mins: 30 },
-      { id: 'huntun', name: '小馄饨', desc: '现包的那种', mins: 40 },
-      { id: 'shaokao', name: '空气炸锅烧烤', desc: '深夜专属', mins: 25 },
-    ],
-  },
-  {
-    cat: '甜的',
-    items: [
-      { id: 'niunaibudong', name: '牛奶布丁', desc: '要冰镇', mins: 240 },
+      { id: 'fanqiedantang', name: '番茄蛋汤', desc: '五分钟搞定', mins: 8 },
+      { id: 'shuiguoban', name: '水果拼盘', desc: '摆好看点', mins: 15 },
       { id: 'kaoniunai', name: '烤奶 / 热可可', desc: '配夜宵', mins: 10 },
-      { id: 'shuiguoban', name: '水果拼盘', desc: '摆得好看一点', mins: 15 },
     ],
   },
 ];
