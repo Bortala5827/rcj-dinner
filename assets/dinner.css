@@ -354,51 +354,102 @@ table.tb code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size
   .o-head .when { margin-left: 0; width: 100%; }
 }
 
-/* ── 水单（外卖小票风格）── */
-.receipt {
-  background: #fff;
-  color: #1a1714;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', 'Courier New', monospace;
+/* ── 热敏打印机（从上往下吐纸）── */
+.printer {
+  position: relative;
   max-width: 348px;
   margin: 4px auto 0;
-  padding: 18px 16px 20px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  background: #2b2723;
+  border-radius: 10px 10px 4px 4px;
   box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.printer .mouth {
+  height: 16px;
+  background: linear-gradient(#423b34, #1c1916);
+  border-radius: 10px 10px 0 0;
+  position: relative;
+}
+.printer .mouth::after {
+  content: '';
+  position: absolute; left: 16px; right: 16px; top: 7px;
+  height: 2px; background: rgba(0, 0, 0, 0.45);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.paper {
+  background: #fffdf7;
+  color: #1a1714;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 13px;
   line-height: 1.7;
+  padding: 14px 16px 12px;
 }
-.receipt .r-head { text-align: center; margin-bottom: 10px; }
-.receipt .r-star {
-  font-family: var(--serif);
-  font-size: 19px; font-weight: 600; letter-spacing: 0.04em;
+/* 每一笔从上往下淡入 + 微下沉，模拟逐行打印 */
+.paper > * {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: rFeed 0.26s ease forwards;
 }
-.receipt .r-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
-.receipt .r-meta, .receipt .r-extra { margin: 4px 0; }
-.receipt .r-line { display: flex; justify-content: space-between; gap: 10px; }
-.receipt .r-l { font-weight: 600; }
-.receipt .r-r { color: var(--ink-2); white-space: nowrap; }
-.receipt .r-items { margin: 4px 0; }
-.receipt .r-item { margin: 4px 0; }
-.receipt .r-note {
+@keyframes rFeed { to { opacity: 1; transform: none; } }
+/* 打印头：闪烁的红线，停在当前笔位置（始终在末尾） */
+.paper .r-cursor {
+  height: 2px; margin: 3px 0;
+  background: var(--accent);
+  opacity: 1 !important; transform: none !important;
+  animation: rBlink 0.8s step-end infinite !important;
+}
+@keyframes rBlink { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+/* 撕口：锯齿底缘 */
+.paper .cut {
+  height: 10px; margin: 10px -16px -12px;
+  background: repeating-linear-gradient(90deg, #fffdf7 0 5px, #e7dfd0 5px 7px);
+  opacity: 1 !important; transform: none !important;
+  animation: none !important;
+}
+
+/* 纸面内容排版（点阵风） */
+.paper .r-head { text-align: center; margin-bottom: 8px; }
+.paper .r-star { font-family: var(--serif); font-size: 19px; font-weight: 600; letter-spacing: 0.04em; }
+.paper .r-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.paper .r-meta, .paper .r-extra { margin: 4px 0; }
+.paper .r-line { display: flex; justify-content: space-between; gap: 10px; }
+.paper .r-l { font-weight: 600; }
+.paper .r-r { color: var(--ink-2); white-space: nowrap; }
+.paper .r-items { margin: 4px 0; }
+.paper .r-item { margin: 4px 0; }
+.paper .r-note {
   color: var(--ink-2); font-size: 12px;
   padding-left: 14px; white-space: pre-wrap; word-break: break-word;
 }
-.receipt .r-sep { border-top: 1px dashed var(--line); margin: 10px 0; }
-.receipt .r-foot { text-align: center; margin-top: 12px; font-size: 12px; color: var(--muted); }
-.receipt .r-thanks { margin-top: 4px; }
-.receipt .r-print { margin-top: 14px; font-family: var(--sans); }
+.paper .r-sep { border-top: 1px dashed #d8cfbf; margin: 9px 0; }
+.paper .r-foot { text-align: center; margin-top: 10px; font-size: 12px; color: var(--muted); }
+.paper .r-thanks { margin-top: 4px; }
 
-/* 打印：只输出这张小票，适配 80mm 热敏纸 */
+.r-tools { max-width: 348px; margin: 10px auto 0; display: flex; gap: 8px; }
+.r-tools .r-replay { flex: 0 0 auto; }
+.r-tools .r-print { flex: 1; }
+
+/* admin 后台挂的小票：留点上下间距，跟操作按钮不打架 */
+.admReceipt { margin: 18px auto 2px; }
+.admReceipt .printer { margin-top: 0; }
+
+/* 打印：只输出 80mm 热敏纸，PDF 不再错位 */
 @media print {
+  @page { size: 80mm auto; margin: 0; }
+  html, body { background: #fff !important; }
   body * { visibility: hidden !important; }
   #receiptPrint, #receiptPrint * { visibility: visible !important; }
   #receiptPrint {
     position: absolute; left: 0; top: 0;
     width: 80mm; max-width: 80mm; margin: 0;
-    border: none; box-shadow: none; border-radius: 0;
+    background: #fff !important; box-shadow: none !important;
+    border-radius: 0 !important; overflow: visible !important;
   }
-  .receipt .r-print { display: none !important; }
+  .printer .mouth { display: none !important; }
+  .paper { background: #fff !important; animation: none !important; }
+  .paper > * { opacity: 1 !important; transform: none !important; animation: none !important; }
+  .paper .r-cursor, .paper .cut { display: none !important; }
+  .r-tools { display: none !important; }
 }
 
 /* admin 后台每张单里挂的小票：留点上下间距，跟外面的操作按钮不打架 */

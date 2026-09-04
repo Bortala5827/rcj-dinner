@@ -524,8 +524,8 @@
       ${o.purged ? `<div class="msg info">录音和参考图已经按 ${Number(state.cfg.limits.retentionDays)} 天的约定清掉了，菜单记录还留着。</div>` : ''}
     </div>`;
 
-    // 小票（外卖水单风格）：用落库后的真实单子渲染，覆盖提交瞬间那张
-    if (window.DinnerReceipt) DinnerReceipt.mount($('receiptSlot'), receiptDataFromOrder(o, !!songId));
+    // 小票（热敏打印风格）：用落库后的真实单子渲染，覆盖提交瞬间那张（不重播动画，避免每次轮询再吐一遍）
+    if (window.DinnerReceipt) DinnerReceipt.mount($('receiptSlot'), receiptDataFromOrder(o, !!songId), { animate: false });
 
     // 被要求再唱一首 → 把录音区整块搬进重唱卡片（同一个实例，不复制 DOM/id）
     if (o.status === 'retry' && !o.purged) {

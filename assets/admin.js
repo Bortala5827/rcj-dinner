@@ -234,7 +234,7 @@
           serveAt: o.serveAt || '',
           hasSong: !!o.song,
           rounds: o.rounds || 1,
-        });
+        }, { animate: false });
       });
     }
   }

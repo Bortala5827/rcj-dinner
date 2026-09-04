@@ -1,8 +1,12 @@
-/* rcj-dinner · 水单（外卖小票风格）渲染
+/* rcj-dinner · 热敏打印机（从上往下吐纸）渲染
    纯前端：传入订单数据，返回 thermal-receipt 风格 HTML。
-   由 order.js（访客端）调用，不依赖任何全局函数。
+   由 order.js（访客端）/ admin.js（后台）调用，不依赖任何全局函数。
+
+   视觉：一台打印机（顶部出纸口）+ 热敏纸，提交后像真机一样
+   一行一行从顶部往下“打印”出来（淡入+微下沉），底部有闪烁打印头，
+   打完补一条锯齿撕口。点“重新出纸”可重播动画。
    打印：window.DinnerReceipt.print() 走系统打印对话框，
-   配合 dinner.css 的 @media print 只输出这张小票（适配 80mm 热敏纸）。 */
+   配合 dinner.css 的 @media print 只输出这张 80mm 热敏纸（不再错位）。 */
 
 (function () {
   'use strict';
@@ -25,7 +29,8 @@
       '<span class="r-r">' + esc(right || '') + '</span></div>';
   }
 
-  function render(data) {
+  // 把订单拆成"逐行"数组——每行就是热敏纸从上到下吐出的一笔
+  function buildLines(data) {
     data = data || {};
     var br = data.brand || {};
     var shop = br.nameZh || br.name || '今晚吃什么';
@@ -33,49 +38,111 @@
     var totalMin = 0;
     dishes.forEach(function (d) { totalMin += (Number(d.mins) || 0) * (Number(d.qty) || 1); });
 
-    var rows = dishes.map(function (d, i) {
-      var head = (i + 1) + '. ' + d.name + (Number(d.qty) > 1 ? ' ×' + d.qty : '');
-      var right = Number(d.mins) ? d.mins + 'min' : '';
-      var note = d.note ? '<div class="r-note">↳ ' + esc(d.note) + '</div>' : '';
-      return '<div class="r-item">' + line(head, right) + note + '</div>';
-    }).join('');
+    var L = [];
+    L.push('<div class="r-head"><div class="r-star">★ ' + esc(shop) + ' ★</div>' +
+           '<div class="r-sub">— 私人订制水单 —</div></div>');
+    L.push('<div class="r-sep"></div>');
+    L.push(line('单号', data.orderId || '——'));
+    L.push(line('时间', data.created ? fmt(data.created) : ''));
+    if (data.guestName) L.push(line('称呼', esc(data.guestName)));
+
+    L.push('<div class="r-sep"></div>');
+    if (dishes.length) {
+      dishes.forEach(function (d, i) {
+        var head = (i + 1) + '. ' + d.name + (Number(d.qty) > 1 ? ' ×' + d.qty : '');
+        var right = Number(d.mins) ? d.mins + 'min' : '';
+        L.push('<div class="r-item">' + line(head, right) +
+               (d.note ? '<div class="r-note">↳ ' + esc(d.note) + '</div>' : '') + '</div>');
+      });
+    } else {
+      L.push('<div class="r-note">（只写了想吃的）</div>');
+    }
 
     var extra = '';
     if (data.wish) extra += line('想吃的', '') + '<div class="r-note">' + esc(data.wish) + '</div>';
     if (data.serveAt) extra += line('希望', esc(data.serveAt));
     extra += line('录歌', data.hasSong ? ('已录 ' + (Number(data.rounds) || 1) + ' 首') : '这单没录');
+    if (extra) { L.push('<div class="r-sep"></div>'); L.push('<div class="r-extra">' + extra + '</div>'); }
 
-    return '' +
-      '<div class="receipt" id="receiptPrint">' +
-        '<div class="r-head">' +
-          '<div class="r-star">★ ' + esc(shop) + ' ★</div>' +
-          '<div class="r-sub">— 私人订制水单 —</div>' +
-        '</div>' +
-        '<div class="r-meta">' +
-          line('单号', data.orderId || '') +
-          line('时间', data.created ? fmt(data.created) : '') +
-          (data.guestName ? line('称呼', esc(data.guestName)) : '') +
-        '</div>' +
-        '<div class="r-sep"></div>' +
-        '<div class="r-items">' + (rows || '<div class="r-note">（只写了想吃的）</div>') + '</div>' +
-        (extra ? '<div class="r-sep"></div><div class="r-extra">' + extra + '</div>' : '') +
-        '<div class="r-sep"></div>' +
-        line('本单估时', totalMin ? ('约 ' + totalMin + ' 分钟') : '—') +
-        '<div class="r-foot">' +
-          '<div>' + esc(br.footer || '这是一间只有两个人的厨房') + '</div>' +
-          '<div class="r-thanks">— 谢谢惠顾，等他开火 —</div>' +
-        '</div>' +
-        '<button type="button" class="btn sm block r-print" onclick="window.DinnerReceipt.print()">打印水单</button>' +
-      '</div>';
+    L.push('<div class="r-sep"></div>');
+    L.push(line('本单估时', totalMin ? ('约 ' + totalMin + ' 分钟') : '—'));
+    L.push('<div class="r-foot"><div>' + esc(br.footer || '这是一间只有两个人的厨房') + '</div>' +
+           '<div class="r-thanks">— 谢谢惠顾，等他开火 —</div></div>');
+    return L;
   }
 
-  function mount(slot, data) {
+  // 静态整张（导出/兜底用）：结构与动画版一致，只是不播动画
+  function render(data) {
+    return '<div class="printer"><div class="mouth"></div>' +
+      '<div class="paper">' + buildLines(data).join('') + '<div class="cut"></div></div></div>';
+  }
+
+  // 把一行 HTML 变成真实节点（template 解析，避免 innerHTML 累积转义问题）
+  function toNode(html) {
+    var t = document.createElement('template');
+    t.innerHTML = html.trim();
+    return t.content.firstChild;
+  }
+
+  function makeCut() {
+    var c = document.createElement('div');
+    c.className = 'cut';
+    return c;
+  }
+
+  function mount(slot, data, opts) {
     if (!slot) return;
-    slot.innerHTML = render(data);
+    opts = opts || {};
+    var animate = opts.animate !== false;
+    var lines = buildLines(data);
+
+    slot.innerHTML =
+      '<div class="printer" id="receiptPrint">' +
+        '<div class="mouth"></div>' +
+        '<div class="paper" id="paperSlot"></div>' +
+      '</div>' +
+      '<div class="r-tools">' +
+        '<button type="button" class="btn ghost sm r-replay">重新出纸</button>' +
+        '<button type="button" class="btn sm r-print">打印这张</button>' +
+      '</div>';
     slot.classList.remove('hide');
+
+    var paper = slot.querySelector('#paperSlot');
+
+    function play() {
+      paper.innerHTML = '';
+      var cursor = document.createElement('div');
+      cursor.className = 'r-cursor';
+      paper.appendChild(cursor);
+      var i = 0;
+      (function step() {
+        if (i >= lines.length) {
+          if (cursor.parentNode) cursor.parentNode.removeChild(cursor);
+          paper.appendChild(makeCut());
+          return;
+        }
+        var html = lines[i];
+        var pause = (html.indexOf('r-sep') !== -1) ? 170 : 110; // 分隔线多停一下，更真
+        paper.insertBefore(toNode(html), cursor);
+        i++;
+        setTimeout(step, pause);
+      })();
+    }
+
+    if (!animate) {
+      paper.innerHTML = lines.join('');
+      paper.appendChild(makeCut());
+    } else {
+      play();
+    }
+
+    var replay = slot.querySelector('.r-replay');
+    if (replay) replay.addEventListener('click', function () { play(); });
+    var pbtn = slot.querySelector('.r-print');
+    if (pbtn) pbtn.addEventListener('click', function () { print(); });
   }
 
   function print() { window.print(); }
 
-  window.DinnerReceipt = { render: render, mount: mount, print: print };
+  window.DinnerReceipt = { render: render, mount: mount, print: print, buildLines: buildLines };
 })();
