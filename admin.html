@@ -94,6 +94,20 @@
   <!-- ─── 导出与清理 ─── -->
   <div class="hide" id="paneTools">
     <div class="card">
+      <div class="sec-h"><h2>通知邮箱（站长）</h2><span class="hint">提交 / 审核提醒发到这个邮箱，可随时改，不用动环境变量</span></div>
+      <div class="row">
+        <div style="flex:1">
+          <label class="fl" for="setOwnerEmail">收通知的邮箱</label>
+          <input type="email" id="setOwnerEmail" placeholder="站长邮箱，留空则用部署时的 OWNER_EMAIL">
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="btn" type="button" id="btnSaveOwnerEmail">保存</button>
+        </div>
+      </div>
+      <div class="hide" id="oeMsg"></div>
+    </div>
+
+    <div class="card">
       <div class="sec-h"><h2>定期导出</h2><span class="hint">媒体到期会被清掉，重要的先导出来</span></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <a class="btn ghost sm" href="/api/admin/export?format=json&amp;media=1">完整备份 JSON（含录音图片）</a>

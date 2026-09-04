@@ -89,7 +89,9 @@
     });
     $('btnNewInvite').addEventListener('click', createInvite);
     $('btnGc').addEventListener('click', runGc);
+    $('btnSaveOwnerEmail').addEventListener('click', saveOwnerEmail);
 
+    loadSettings();
     loadOrders();
   }
 
@@ -144,7 +146,7 @@
       `存储：<b>${esc(s.storage || '-')}</b>`,
       `媒体保留 <b>${Number(s.retentionDays || 0)}</b> 天 · 订单 <b>${Number(s.orderRetentionDays || 0)}</b> 天`,
       `邮件：<b>${s.mailReady ? '已接 Resend' : '未配置 RESEND_API_KEY'}</b>`,
-      s.ownerEmail ? `通知到 <b>${esc(s.ownerEmail)}</b>` : '<b>未设 OWNER_EMAIL，收不到提醒</b>',
+      s.ownerEmail ? `通知到 <b>${esc(s.ownerEmail)}</b>` : '<b>未设通知邮箱，收不到提醒</b>',
       s.lastGcText ? `上次清理 ${esc(s.lastGcText)}` : '还没清理过',
     ].join(' &nbsp;·&nbsp; ');
   }
@@ -348,6 +350,19 @@
     if (!r.ok) { say(msg, r.error || '失败', 'err'); return; }
     say(msg, `清了 ${r.mediaPurgedOrders} 张单的媒体（${r.mediaRows} 件），删了 ${r.ordersDeleted} 张过期单。`, 'ok');
     if (state.tab === 'orders') loadOrders();
+  }
+
+  async function loadSettings() {
+    var r = await api('/api/admin/settings');
+    if (!r.ok || !$('setOwnerEmail')) return;
+    $('setOwnerEmail').value = r.ownerEmail || '';
+  }
+  async function saveOwnerEmail() {
+    var msg = $('oeMsg');
+    say(msg, '保存中…', 'info');
+    var r = await api('/api/admin/settings', { method: 'POST', body: JSON.stringify({ ownerEmail: ($('setOwnerEmail').value || '').trim() }) });
+    say(msg, r.ok ? '已保存' : (r.error || '失败'), r.ok ? 'ok' : 'err');
+    if (r.ok && state.tab === 'orders') loadOrders();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

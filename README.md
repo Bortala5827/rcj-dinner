@@ -64,9 +64,12 @@ npm run dev                      # http://localhost:8788
 # 3. set secrets (sensitive values go through secrets, never into the repo / git)
 wrangler pages secret put ADMIN_PASSWORD
 wrangler pages secret put RESEND_API_KEY
-wrangler pages secret put OWNER_EMAIL
 wrangler pages secret put SITE_URL          # e.g. https://dinner.yourdomain.xyz
 wrangler pages secret put GC_KEY            # any long random string; external timer uses it for /api/gc
+#    OWNER_EMAIL (where new-order notifications go) is OPTIONAL at deploy time.
+#    After deploy you can set / change it in the admin backend (工具 pane → 通知邮箱)
+#    without touching env vars — handy for letting each side test with their own email.
+# wrangler pages secret put OWNER_EMAIL     # optional fallback; if skipped, set it in the backend
 
 # 4. create tables (first time only)
 wrangler d1 execute rcj-analytics-d1 --remote --file=./schema.sql
@@ -96,7 +99,7 @@ bash scripts/deploy.sh
 | `ADMIN_PASSWORD` | ✅ secret | — | Admin `/admin` login password |
 | `ADMIN_SESSION_DAYS` | optional | `2` | Admin session cookie lifetime in days (shorter = safer; re-login required after it expires) |
 | `RESEND_API_KEY` | ✅ secret | — | Resend API key (two-way email) |
-| `OWNER_EMAIL` | ✅ secret | — | New-order notification emails are sent here |
+| `OWNER_EMAIL` | optional | — | New-order notification target. Set here OR in the admin backend (工具 → 通知邮箱); the backend value wins and is stored in D1. If both are blank, no notification email is sent. |
 | `SITE_URL` | ✅ secret | `https://dinner.955827.xyz` | Used to build email deep links; set to your domain |
 | `GC_KEY` | ✅ secret | — | External timer calls `/api/gc?key=` with this |
 | `MAIL_FROM` | optional | `Dinner <noreply@955827.xyz>` | From address |
@@ -151,6 +154,22 @@ After the new site is up, replay this JSON into its D1 — zero external depende
 
 **Change domain:** change only the `SITE_URL` variable (affects email deep links).
 
+**Owner notification email — set in the backend, no redeploy:**
+Once logged in at `/admin`, open the **工具 (Tools) pane → 通知邮箱（站长）** card. Type any email and save — it is stored in D1 (`dinner_meta k='owner_email'`) and overrides the `OWNER_EMAIL` env var. This means both the seller (you) and the buyer can each plug in their own inbox to test the email loop without touching deployment secrets or redeploying. Leave it blank to fall back to the `OWNER_EMAIL` secret, or leave both blank to run email-free.
+
+---
+
+## 5.2 Buyer setup (the only tutorial a buyer needs)
+
+When you hand this off as a white-label product, the buyer does **not** touch code or Cloudflare Functions. The whole setup is two steps:
+
+1. **Cloudflare domain hosting** — point the buyer's domain (or a clean subdomain, e.g. `dinner.theirbrand.xyz`) at Cloudflare, then assign it to the Pages project (`Settings → Custom domains`). A subdomain on an existing zone is fine and causes no conflict with other sites.
+2. **Resend API + domain binding** — the buyer signs up at Resend, creates an API key, adds their sending domain, and pastes the SPF/DKIM records into their DNS. Once the domain shows *verified* in Resend, the new account leaves test mode (can send to any `to` address, not just the account email).
+
+After those two steps, the buyer pastes the Resend key into `RESEND_API_KEY`, sets `SITE_URL`, and they are live. The notification inbox is then chosen in the backend (see above) — no env-var juggling required.
+
+> 💡 Keep `MAIL_FROM` at its default unless the buyer wants a custom From name; the default `Dinner <noreply@955827.xyz>` works as long as the Resend-verified domain matches.
+
 ---
 
 ## 5.1 Automation (GitHub Actions — "periodic export + 3-day auto-cleanup")
@@ -192,6 +211,7 @@ rcj-dinner/
 │  ├─ admin/login.js          # login / session
 │  ├─ admin/orders.js         # list / review actions
 │  ├─ admin/invites.js        # invite-code management
+│  ├─ admin/settings.js       # owner notification email (backend-set, stored in D1)
 │  ├─ admin/export.js         # JSON / CSV export
 │  └─ gc.js                   # external-timer cleanup trigger
 └─ scripts/check-syntax.mjs   # pre-commit syntax gate: node scripts/check-syntax.mjs

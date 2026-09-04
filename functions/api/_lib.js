@@ -96,6 +96,20 @@ export function cfg(env) {
   };
 }
 
+// 站长通知邮箱：优先取 D1 里站长在后台设的值，没有再退回 OWNER_EMAIL 环境变量。
+// 这样白牌交付时买家不用改部署变量，直接在后台填自己的邮箱即可。
+export async function getOwnerEmail(env, q) {
+  const fallback = String(env.OWNER_EMAIL || '').trim();
+  if (!q) return fallback;
+  try {
+    const row = await q.first('SELECT v FROM dinner_meta WHERE k = ?', ['owner_email']);
+    const v = row ? String(row.v || '').trim() : '';
+    return v || fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
 export function fmtTime(ts, tzOffset = 8) {
   const t = new Date(Number(ts) + tzOffset * 3600 * 1000);
   const p = (n) => String(n).padStart(2, '0');

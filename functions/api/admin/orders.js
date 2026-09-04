@@ -5,7 +5,7 @@
 // 审核动作会同步给她发邮件：cooking → 美食准备中 / retry → 再唱一首 / served → 上菜。
 // retry 会立刻删掉这一轮的录音（省存储；她重唱时会传新的）。
 
-import { json, preflight, ensureSchema, verifyAdmin, cfg, logEvent, deleteOrderMedia, gcMaybe, fmtTime } from '../_lib.js';
+import { json, preflight, ensureSchema, verifyAdmin, cfg, logEvent, deleteOrderMedia, gcMaybe, fmtTime, getOwnerEmail } from '../_lib.js';
 import { notifyGuest } from '../_notify.js';
 
 export async function onRequestOptions() {
@@ -104,7 +104,7 @@ export async function onRequestGet(ctx) {
       orderRetentionDays: c.orderRetentionDays,
       storage: env.MEDIA ? 'R2' : 'D1',
       mailReady: !!String(env.RESEND_API_KEY || '').trim(),
-      ownerEmail: c.ownerEmail,
+      ownerEmail: await getOwnerEmail(env, q),
     },
   });
 }
