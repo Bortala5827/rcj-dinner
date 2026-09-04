@@ -400,3 +400,6 @@ table.tb code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size
   }
   .receipt .r-print { display: none !important; }
 }
+
+/* admin 后台每张单里挂的小票：留点上下间距，跟外面的操作按钮不打架 */
+.admReceipt { margin: 18px auto 2px; }

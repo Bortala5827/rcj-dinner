@@ -37,6 +37,8 @@
   }
 
   var STATUS_TEXT = { pending: '待听歌', cooking: '做饭中', served: '已上菜', retry: '让她重唱' };
+  // 收银台头：与 _config.js DEFAULT_BRAND 对齐（白牌改 BRAND_JSON / 后台未来接 brand 接口再同步）
+  var BRAND = { name: 'Dinner for You', nameZh: '今晚吃什么', footer: '这是一间只有两个人的厨房' };
   var TL_TEXT = {
     submitted: '提交', resang: '重唱', cooking: '开火', retry: '打回重唱',
     served: '上菜', purge: '媒体清理', mail: '通知',
@@ -193,6 +195,7 @@
         </div>
         <div style="margin-top:12px">${songTag}</div>
         ${pics}
+        <div data-receipt class="admReceipt"></div>
         <div style="margin-top:14px">
           <input type="text" id="rp_${esc(o.id)}" placeholder="给她的留言（会出现在邮件里）" value="">
         </div>
@@ -212,6 +215,28 @@
     Array.prototype.forEach.call(box.querySelectorAll('.thumbs img'), function (im) {
       im.addEventListener('click', function () { lightbox(im.getAttribute('data-full')); });
     });
+
+    // 给每张单挂一张同款水单（外卖店家的撕单），点"打印水单"直接出纸
+    if (window.DinnerReceipt) {
+      Array.prototype.forEach.call(box.querySelectorAll('[data-receipt]'), function (slot) {
+        var oid = slot.parentNode && slot.parentNode.id.replace(/^o_/, '');
+        var o = state.orders.find(function (x) { return x.id === oid; });
+        if (!o) return;
+        DinnerReceipt.mount(slot, {
+          brand: BRAND,
+          orderId: o.id,
+          created: o.created,
+          guestName: o.guestName,
+          dishes: (o.dishes || []).map(function (d) {
+            return { name: d.name, qty: d.qty, note: d.note || '', mins: d.mins || 0 };
+          }),
+          wish: o.wish || '',
+          serveAt: o.serveAt || '',
+          hasSong: !!o.song,
+          rounds: o.rounds || 1,
+        });
+      });
+    }
   }
 
   async function act(id, action, btn) {

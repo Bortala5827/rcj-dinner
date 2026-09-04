@@ -119,7 +119,7 @@ export async function onRequestPost(ctx) {
     const it = idx.get(String(d && d.id));
     if (!it) continue;
     const qty = Math.min(9, Math.max(1, Math.floor(Number(d.qty) || 1)));
-    dishes.push({ id: it.id, name: it.name, qty, note: String(d.note || '').trim().slice(0, 60) });
+    dishes.push({ id: it.id, name: it.name, qty, note: String(d.note || '').trim().slice(0, 60), mins: Number(it.mins) || 0 });
   }
   if (!dishes.length && !wish) return json({ ok: false, error: '至少点一个菜，或者写一句想吃什么' }, 400);
 
