@@ -5,8 +5,7 @@
    视觉：一台打印机（顶部出纸口）+ 热敏纸，提交后像真机一样
    一行一行从顶部往下“打印”出来（淡入+微下沉），底部有闪烁打印头，
    打完补一条锯齿撕口。点“重新出纸”可重播动画。
-   打印：window.DinnerReceipt.print() 走系统打印对话框，
-   配合 dinner.css 的 @media print 只输出这张 80mm 热敏纸（不再错位）。 */
+   仅做屏幕上的热敏效果，不做打印/导出 PDF（与手机端观感一致）。 */
 
 (function () {
   'use strict';
@@ -71,9 +70,9 @@
     return L;
   }
 
-  // 静态整张（导出/兜底用）：结构与动画版一致，只是不播动画
+  // 静态整张（兜底用）：结构与动画版一致，只是不播动画
   function render(data) {
-    return '<div class="printer receipt-print"><div class="mouth"></div>' +
+    return '<div class="printer"><div class="mouth"></div>' +
       '<div class="paper">' + buildLines(data).join('') + '<div class="cut"></div></div></div>';
   }
 
@@ -97,13 +96,12 @@
     var lines = buildLines(data);
 
     slot.innerHTML =
-      '<div class="printer receipt-print">' +
+      '<div class="printer">' +
         '<div class="mouth"></div>' +
         '<div class="paper" id="paperSlot"></div>' +
       '</div>' +
       '<div class="r-tools">' +
         '<button type="button" class="btn ghost sm r-replay">重新出纸</button>' +
-        '<button type="button" class="btn sm r-print">打印这张</button>' +
       '</div>';
     slot.classList.remove('hide');
 
@@ -142,30 +140,7 @@
 
     var replay = slot.querySelector('.r-replay');
     if (replay) replay.addEventListener('click', function () { play(); });
-    var pbtn = slot.querySelector('.r-print');
-    if (pbtn) pbtn.addEventListener('click', function () {
-      print(slot.querySelector('.printer'));
-    });
   }
 
-  // 打印：只把“当前这张”小票交给系统打印对话框，其余整页隐藏。
-  // target 传具体的 .printer 节点；不传则取页面上第一张（兼容 Ctrl+P）。
-  var _printing = null;
-  window.addEventListener('afterprint', clearPrinting);
-  function clearPrinting() {
-    if (_printing) { _printing.classList.remove('printing'); _printing = null; }
-  }
-  function print(target) {
-    var node = (target && target.classList && target.classList.contains('printer'))
-      ? target
-      : document.querySelector('.receipt-print');
-    if (!node) return;
-    _printing = node;
-    node.classList.add('printing');
-    // 兜底：部分环境不触发 afterprint 时，3 秒后清掉标记，避免卡在打印态
-    setTimeout(clearPrinting, 3000);
-    window.print();
-  }
-
-  window.DinnerReceipt = { render: render, mount: mount, print: print, buildLines: buildLines };
+  window.DinnerReceipt = { render: render, mount: mount, buildLines: buildLines };
 })();

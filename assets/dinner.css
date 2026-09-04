@@ -357,7 +357,7 @@ table.tb code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size
 /* ── 热敏打印机（从上往下吐纸）── */
 .printer {
   position: relative;
-  max-width: 348px;
+  max-width: min(348px, 100%);
   margin: 4px auto 0;
   background: #2b2723;
   border-radius: 10px 10px 4px 4px;
@@ -436,25 +436,19 @@ table.tb code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size
 .admReceipt { margin: 18px auto 2px; }
 .admReceipt .printer { margin-top: 0; }
 
-/* 打印：只输出当前这张 80mm 热敏纸，PDF 不再错位、多张也不重叠 */
-@media print {
-  @page { size: 80mm auto; margin: 0; }
-  html, body { background: #fff !important; }
-  body * { visibility: hidden !important; }
-  .receipt-print.printing, .receipt-print.printing * { visibility: visible !important; }
-  .receipt-print.printing {
-    position: absolute; left: 0; right: 0; top: 0; margin: 0 auto !important;
-    width: 80mm; max-width: 80mm;
-    background: #fff !important; box-shadow: none !important;
-    border-radius: 0 !important; overflow: visible !important;
-  }
-  .receipt-print.printing .mouth { display: none !important; }
-  .receipt-print.printing .paper { background: #fff !important; animation: none !important; }
-  .receipt-print.printing .paper > * {
-    opacity: 1 !important; transform: none !important; animation: none !important; background: transparent !important;
-  }
-  .receipt-print.printing .r-cursor, .receipt-print.printing .cut { display: none !important; }
-  .receipt-print.printing .r-tools { display: none !important; }
+/* admin 后台手机端适配：tab 换行、小票不溢出、操作按钮满宽、表格可横滑 */
+@media (max-width: 560px) {
+  .tabs { flex-wrap: wrap; }
+  .tabs button { flex: 1 1 auto; min-width: 76px; padding: 9px 10px; }
+  #btnLogout { margin-left: 0 !important; }
+  .stats { gap: 8px; }
+  .stat { flex: 1 1 44%; min-width: 0; }
+  .o-acts { gap: 6px; }
+  .o-acts .btn { flex: 1 1 auto; }
+  .printer { max-width: 100%; }
+  .r-tools { max-width: 100%; }
+  .tb { display: block; width: 100%; overflow-x: auto; white-space: nowrap; }
+  .tb th, .tb td { white-space: nowrap; }
 }
 
 /* admin 后台每张单里挂的小票：留点上下间距，跟外面的操作按钮不打架 */
