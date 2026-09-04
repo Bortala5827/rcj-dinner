@@ -428,9 +428,8 @@ table.tb code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size
 .paper .r-foot { text-align: center; margin-top: 10px; font-size: 12px; color: var(--muted); }
 .paper .r-thanks { margin-top: 4px; }
 
-.r-tools { max-width: 348px; margin: 10px auto 0; display: flex; gap: 8px; }
+.r-tools { max-width: min(348px, 100%); margin: 10px auto 0; display: flex; gap: 8px; }
 .r-tools .r-replay { flex: 0 0 auto; }
-.r-tools .r-print { flex: 1; }
 
 /* admin 后台挂的小票：留点上下间距，跟操作按钮不打架 */
 .admReceipt { margin: 18px auto 2px; }
