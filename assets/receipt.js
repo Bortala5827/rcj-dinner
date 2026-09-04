@@ -130,20 +130,23 @@
       var cursor = document.createElement('div');
       cursor.className = 'r-cursor';
       paper.appendChild(cursor);
+      var printerEl = slot.querySelector('.printer');
+      if (printerEl) printerEl.classList.add('printing'); // 出纸口亮起：正在打印
       var i = 0;
       (function step() {
         if (i >= lines.length) {
           if (cursor.parentNode) cursor.parentNode.removeChild(cursor);
+          if (printerEl) printerEl.classList.remove('printing'); // 打完：出纸口熄灭
           paper.appendChild(makeCut());
           return;
         }
         var html = lines[i];
-        var pause = (html.indexOf('r-sep') !== -1) ? 260 : 180; // 缓缓吐纸，分隔线多停一下，更真
+        var pause = (html.indexOf('r-sep') !== -1) ? 340 : 220; // 缓缓吐纸，分隔线多停一下，更真
         var node = toNode(html);
         node.classList.add('r-fresh'); // 刚“打印”出来的那笔，给个淡淡的暖光一闪
         paper.insertBefore(node, cursor);
         var printed = node;
-        setTimeout(function () { if (printed.parentNode) printed.classList.remove('r-fresh'); }, 420);
+        setTimeout(function () { if (printed.parentNode) printed.classList.remove('r-fresh'); }, 520);
         i++;
         setTimeout(step, pause);
       })();

@@ -460,40 +460,45 @@ table.tb code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size
   z-index: 4;
 }
 
-/* 热敏纸：从出口下方挂出（奶油色 + 棕字） */
+/* 热敏纸：从出纸口下方缓缓挂出（奶油色 + 棕字） */
 .printer .paper {
   position: relative;
   background: #faf6ee;
   color: #6b4a2b;
-  width: 90%;
-  margin: -6px auto 0;  /* 微微上提，让纸顶藏进出纸口 */
+  width: 88%;
+  margin: -15px auto 0;  /* 顶端深深藏进出纸口，像被一点点吐出来 */
   padding: 26px 18px 14px;
   border-radius: 0 0 8px 8px;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 13px;
   line-height: 1.75;
   z-index: 2;
-  box-shadow: 0 4px 12px rgba(120, 80, 40, 0.15);
+  box-shadow: 0 8px 18px rgba(120, 80, 40, 0.20);
   min-height: 50px;
 }
-/* 每一笔从上往下滑入位置（从出纸口方向出现） */
+/* 正在打印：整张纸轻轻往下"喂"，像被机器一点点吐出来 */
+.printer.printing .paper { animation: rFeed 0.42s ease-in-out infinite alternate; }
+@keyframes rFeed { from { transform: translateY(0); } to { transform: translateY(3px); } }
+/* 每一笔从出纸口方向滑入、淡入，像刚被打出来 */
 .paper > * {
   opacity: 0;
-  transform: translateY(-10px);
-  animation: rFeed 0.32s cubic-bezier(0.22, 0.7, 0.3, 1) forwards;
-  transition: background 0.4s ease;
+  transform: translateY(-16px) scaleY(0.92);
+  transform-origin: top center;
+  animation: rEmerge 0.5s cubic-bezier(0.2, 0.75, 0.3, 1) forwards;
 }
-@keyframes rFeed { to { opacity: 1; transform: none; } }
+@keyframes rEmerge { to { opacity: 1; transform: none; } }
 /* 刚"打印"出来的一笔：暖光一闪 */
-.paper .r-fresh { background: rgba(194, 84, 60, 0.12); }
-/* 打印头：闪烁红线 */
+.paper .r-fresh { background: rgba(194, 84, 60, 0.13); }
+/* 打印头：正在"打"的那一行位置，会闪烁 */
 .paper .r-cursor {
-  height: 2px; margin: 3px 0;
+  height: 3px; margin: 2px 0 5px;
   background: #c2543c;
+  border-radius: 2px;
   opacity: 1 !important; transform: none !important;
-  animation: rBlink 0.8s step-end infinite !important;
+  animation: rBlink 0.7s step-end infinite !important;
+  box-shadow: 0 0 7px rgba(194, 84, 60, 0.6);
 }
-@keyframes rBlink { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+@keyframes rBlink { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
 /* 撕口：锯齿底缘（米色调） */
 .paper .cut {
   height: 10px; margin: 10px -18px -14px;
