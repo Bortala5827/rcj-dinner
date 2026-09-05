@@ -5,7 +5,7 @@
 >
 > 中文用户请看各节标题旁的小注。
 
-🟢 **Live demo:** a production instance runs at **https://dinner.955827.xyz** (custom domain). The default admin password is a temporary test value — change it before sharing (see §2).
+🟢 **Live demo:** a production instance runs at **https://dinner.955827.xyz** (custom domain). Admin password is set per-instance via secrets — no default value is shipped (see §2).
 
 ---
 
@@ -88,7 +88,7 @@ bash scripts/deploy.sh
 # values already exported as env vars are written directly; otherwise it prompts interactively.
 ```
 
-> ⚠️ The default admin password is a temporary test value — **change it via `wrangler pages secret put ADMIN_PASSWORD` before sharing the site.**
+> 🔑 No default password is shipped — **set one via `wrangler pages secret put ADMIN_PASSWORD` before sharing the site.**
 
 ---
 
