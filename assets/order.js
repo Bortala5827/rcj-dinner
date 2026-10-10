@@ -13,6 +13,7 @@
   var state = {
     code: '',
     cfg: null,
+    addOrder: '',          // 非空 = 加菜模式（往这张单追加，不用重录歌）
     picked: {},          // id -> { qty, note }
     photos: [],          // { b64, mime, bytes, url }
     song: null,          // { b64, mime, bytes, seconds, url }
@@ -433,6 +434,35 @@
     var wish = $('wish').value.trim();
     var email = $('email').value.trim();
 
+    // 加菜模式：不校验邮箱/录音，只追加菜 + 可选 wish/时间/参考图
+    if (state.addOrder) {
+      if (!dishes.length && !wish) { say(msg, '至少加一个菜，或者写一句想吃的', 'err'); return; }
+      btn.disabled = true;
+      say(msg, '在加菜…', 'info');
+      var payload = {
+        k: state.code,
+        addOrder: state.addOrder,
+        dishes: dishes,
+        wish: wish,
+        serveAt: $('serveAt').value.trim(),
+        photos: state.photos.map(function (p) { return { data: p.b64, mime: p.mime }; }),
+        hp: $('hp').value,
+        elapsed: Date.now() - state.startedAt,
+      };
+      var r = await api('/api/order', { method: 'POST', body: JSON.stringify(payload) });
+      btn.disabled = false;
+      if (!r.ok) { say(msg, r.error || '加菜失败', 'err'); return; }
+      show($('panelOrder'), false);
+      show($('panelDone'), true);
+      $('doneId').textContent = r.id;
+      $('doneTitle').textContent = '加菜成功';
+      $('doneNote').textContent = '他会看到更新后的单，原来的菜都还在。';
+      window.scrollTo(0, 0);
+      if (window.DinnerReceipt) DinnerReceipt.mount($('receiptSlot'), receiptDataFromState());
+      loadStatus(r.id);
+      return;
+    }
+
     if (!dishes.length && !wish) { say(msg, '至少点一个菜，或者写一句想吃什么', 'err'); return; }
     if (!state.cfg.invite.emailLocked && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       say(msg, '邮箱填一下，做好了发给你', 'err');
@@ -521,6 +551,9 @@
       <ul class="tl">${(r.timeline || []).map(function (e, i) {
         return `<li class="${i === r.timeline.length - 1 ? 'hi' : ''}">${esc(TL_TEXT[e.type] || e.type)}${e.detail ? ' · ' + esc(e.detail) : ''}<span class="t">${fmt(e.created)}</span></li>`;
       }).join('')}</ul>
+      ${(o.status === 'pending' || o.status === 'cooking') && !o.purged
+        ? `<a class="btn sm" style="margin-top:14px" href="?k=${encodeURIComponent(state.code)}&order=${encodeURIComponent(o.id)}&add=1">再加几个菜</a>`
+        : ''}
       ${o.purged ? `<div class="msg info">录音和参考图已经按 ${Number(state.cfg.limits.retentionDays)} 天的约定清掉了，菜单记录还留着。</div>` : ''}
     </div>`;
 
@@ -639,9 +672,24 @@
       if (e.dataTransfer && e.dataTransfer.files) addPhotos(e.dataTransfer.files);
     });
 
-    // 深链 ?order=<id> → 直接看那张单
-    var oid = new URL(location.href).searchParams.get('order');
-    if (oid) {
+    // 深链 ?order=<id> → 直接看那张单；带 &add=1 → 进入加菜模式
+    var params = new URL(location.href);
+    var oid = params.searchParams.get('order');
+    var isAdd = params.searchParams.get('add') === '1' || params.searchParams.get('add') === 'true';
+    if (isAdd && oid) {
+      state.addOrder = oid;
+      show($('recSection'), false);          // 加菜不用重录歌，原来的歌保留
+      $('btnSubmit').textContent = '加菜';
+      $('pickCount').textContent = '加菜中';
+      var hint = $('addHint');
+      if (hint) {
+        hint.innerHTML = '正在给单 <span class="mono">' + esc(oid) + '</span> 加菜 · 原来点的都留着，再挑几个新的就行';
+        show(hint, true);
+      }
+      show($('panelOrder'), true);
+      show($('panelDone'), false);
+      show($('openHint'), false);
+    } else if (oid) {
       show($('panelOrder'), false);
       show($('panelDone'), true);
       $('doneId').textContent = oid;

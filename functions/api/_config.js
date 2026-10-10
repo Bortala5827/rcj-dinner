@@ -118,16 +118,20 @@ function dishLines(dishes) {
     .join('、');
 }
 
-// 1) 她提交 → 通知厨师（我），带一键深链进后台
-export function mailOwnerNew({ b, order, dishes, when, site, photoCount, hasSong, resang }) {
-  const title = resang ? `${order.guest_name || '她'}又唱了一首` : `${order.guest_name || '有人'}点单了`;
+// 1) 她提交 / 加菜 → 通知厨师（我），带一键深链进后台
+export function mailOwnerNew({ b, order, dishes, when, site, photoCount, hasSong, resang, added }) {
+  const title = resang
+    ? `${order.guest_name || '她'}又唱了一首`
+    : added > 0
+      ? `${order.guest_name || '她'}加菜了`
+      : `${order.guest_name || '有人'}点单了`;
   return {
     subject: `【${b.nameZh}】${title}`,
     html:
       WRAP_OPEN +
       head(title, when) +
       rows([
-        ['点了', dishLines(dishes) || '（只写了想吃的）'],
+        ['现在的单', dishLines(dishes) || order.wish || '（只写了想吃的）'],
         ['还想吃', order.wish ? order.wish.slice(0, 200) : ''],
         ['希望时间', order.serve_at || '没写，随你'],
         ['附件', `${hasSong ? '录音 1 段' : '没录音'}${photoCount ? ` · 参考图 ${photoCount} 张` : ''}`],
@@ -206,6 +210,24 @@ export function mailGuestServed({ b, order, dishes, when }) {
         ['他说', order.reply ? order.reply.slice(0, 300) : ''],
       ]) +
       note('趁热。') +
+      foot(b) +
+      WRAP_CLOSE,
+  };
+}
+
+// 6) 加菜 → 更新回执给她（水单页即可继续加，不用重新进站）
+export function mailGuestAdded({ b, order, dishes, when, statusUrl }) {
+  return {
+    subject: `【${b.nameZh}】单子更新了`,
+    html:
+      WRAP_OPEN +
+      head('又加了几道，收到', when) +
+      rows([
+        ['现在的单', dishLines(dishes) || order.wish || '—'],
+        ['单号', order.id],
+      ]) +
+      button(statusUrl, '看看更新后的单') +
+      note('还想加菜的话，点上面的链接，在水单页就能继续加，不用重新进站。') +
       foot(b) +
       WRAP_CLOSE,
   };

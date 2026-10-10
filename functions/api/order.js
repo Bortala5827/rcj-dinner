@@ -1,5 +1,6 @@
 // POST /api/order        提交点餐（需有效邀请码）
 // POST /api/order        { resubmit: "<orderId>", song: {...} }  → 被要求「再唱一首」后重新提交
+// POST /api/order        { addOrder: "<orderId>", dishes: [...], wish?, serveAt?, photos? }  → 水单页加菜（不动录音）
 //
 // 白名单 = 邀请码（invite code）。没有有效 code 的请求一律 403，且不返回任何细节。
 // 反骚扰四层：邀请码门禁 → 邮箱绑定（首次提交锁定）→ 频率限流（按 code + 按 IP）→ 蜜罐 + 最短填写时长。
@@ -95,6 +96,63 @@ export async function onRequestPost(ctx) {
     const fresh = await q.first('SELECT * FROM dinner_orders WHERE id = ?', [resubmitId]);
     await notifyOwner(env, q, fresh, safeJson(fresh.dishes), { resang: true, hasSong: true });
     return json({ ok: true, id: resubmitId, rounds, msg: '又唱了一首，等他听' });
+  }
+
+  /* ───────── 分支 C：加菜（水单页入口，不动录音，只追加） ───────── */
+  const addOrderId = String(body.addOrder || '').trim();
+  if (addOrderId) {
+    if (!/^[A-Za-z0-9_-]+$/.test(addOrderId)) return json({ ok: false, error: '单号不对' }, 400);
+    const o = await q.first('SELECT * FROM dinner_orders WHERE id = ? AND code = ?', [addOrderId, code]);
+    if (!o) return json({ ok: false, error: '找不到这张单' }, 404);
+    if (Number(o.purged)) return json({ ok: false, error: '这张单太久了，重新点一次吧' }, 409);
+    if (o.status !== 'pending' && o.status !== 'cooking') {
+      return json({ ok: false, error: o.status === 'served' ? '已经上菜了，下次再点吧' : '这张单现在不能加菜' }, 409);
+    }
+
+    // 新菜品：只认菜单里存在的 id；同 id 合并数量（上限 9），新菜追加（总量上限 12 项）
+    const idx = menuIndex(env);
+    const rawDishes = Array.isArray(body.dishes) ? body.dishes.slice(0, 12) : [];
+    const existing = safeJson(o.dishes);
+    const before = existing.length;
+    for (const d of rawDishes) {
+      const it = idx.get(String(d && d.id));
+      if (!it) continue;
+      const qty = Math.min(9, Math.max(1, Math.floor(Number(d.qty) || 1)));
+      const note = String(d.note || '').trim().slice(0, 60);
+      const hit = existing.find((x) => x.id === it.id);
+      if (hit) hit.qty = Math.min(9, hit.qty + qty);
+      else existing.push({ id: it.id, name: it.name, qty, note, mins: Number(it.mins) || 0 });
+    }
+    const wish = String(body.wish || '').trim().slice(0, 300);
+    const serveAt = String(body.serveAt || '').trim().slice(0, 40);
+    const added = existing.length - before;
+    if (added <= 0 && !wish && !serveAt) return json({ ok: false, error: '至少加一个菜，或者写一句想吃的' }, 400);
+
+    // 参考图追加（不超配置上限）
+    const existingPhotos = await q.first("SELECT COUNT(*) AS n FROM dinner_media WHERE order_id = ? AND kind = 'photo'", [addOrderId]);
+    const photos = (Array.isArray(body.photos) ? body.photos : []).slice(0, Math.max(0, c.maxPhotos - Number(existingPhotos && existingPhotos.n)));
+    for (const p of photos) {
+      if (!p || !p.data) return json({ ok: false, error: '有张图片没读到' }, 400);
+      if (b64Bytes(p.data) > c.maxPhotoBytes) {
+        return json({ ok: false, error: `图片太大（单张上限 ${Math.round(c.maxPhotoBytes / 1024)}KB）` }, 400);
+      }
+    }
+
+    await q.run(
+      'UPDATE dinner_orders SET dishes = ?, wish = ?, serve_at = ?, updated = ? WHERE id = ?',
+      [JSON.stringify(existing), wish || o.wish, serveAt || o.serve_at, now, addOrderId]
+    );
+    for (const p of photos) {
+      await putMedia(env, q, { orderId: addOrderId, kind: 'photo', mime: p.mime || 'image/webp', b64: p.data, round: 1 });
+    }
+
+    await logEvent(q, addOrderId, 'added', `${added} 个新菜${photos.length ? ` · ${photos.length} 张图` : ''}`);
+    const fresh = await q.first('SELECT * FROM dinner_orders WHERE id = ?', [addOrderId]);
+    await notifyOwner(env, q, fresh, safeJson(fresh.dishes), { added: added, hasSong: true });
+    if (String(env.NOTIFY_GUEST_ON_SUBMIT || '1') === '1') {
+      await notifyGuest(env, q, fresh, safeJson(fresh.dishes), 'added');
+    }
+    return json({ ok: true, id: addOrderId, msg: '加好了，他会看到' });
   }
 
   /* ───────── 分支 B：新点单 ───────── */

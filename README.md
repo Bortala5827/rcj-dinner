@@ -35,6 +35,32 @@ Storage & cleanup
 
 The core idea is **invite code = allowlist**: one code per person, email auto-bound on first submit, with optional use-limit / expiry. It is more anti-spam than an email allowlist (a stranger with no code can't get in, and each code can be individually revoked).
 
+### 邀请码如何被浏览器记住（invite-code persistence）
+
+首次必须带码（`/?k=<code>`，或 hash 里的 `k=`），之后**同一台设备直接开域名就能进**——不是靠 cookie/session，而是纯前端 `localStorage`：
+
+| 场景 | 行为 |
+|------|------|
+| 打开带码链接 | URL 里的码优先，并 `localStorage.setItem('dinner_k', code)` 覆盖写入 |
+| 直接开域名（无码） | 从 `localStorage.getItem('dinner_k')` 取码，自动通过门禁 |
+| 无痕 / 禁用存储 | 存不进去，每次都要点带码链接 |
+| 换设备 / 清缓存 | localStorage 清空，需要重新点一次带码链接 |
+| 换人换码 | 再点一次带新码链接即可覆盖旧码，无需改部署 |
+
+每次请求（config / order / status / media）都带 `k` 由服务端校验；码无效只显示门禁屏"这间厨房只对一个人开门"，**菜单不硬编码在前端**（从 `/api/config?k=` 下发）。邮箱首次提交自动绑定（`lock_email=1`），之后该码只认这个邮箱。
+
+### 加菜（追加到已有订单）
+
+她收到邮件水单（链接 `/?k=<code>&order=<orderId>`）后，**不用重新进站**就能继续加菜：
+
+1. 水单页状态为 `pending` / `cooking` 时显示"再加几个菜"按钮 → 跳到 `/?k=<code>&order=<orderId>&add=1`
+2. 加菜模式隐藏录音区（原歌保留），只挑新菜 → 提交 `POST /api/order` 带 `addOrder=<orderId>`
+3. 服务端校验单号归属后**合并** `dishes` JSON（同菜 id 数量相加，上限 9；单子总量 ≤12 项），`wish` / `serveAt` 留空则不覆盖
+4. 追加参考图（不超过 `MAX_PHOTOS`），更新 `updated`，事件线记 `added`
+5. 双向通知照常：厨师邮件/TG 收到"她加菜了"+ 新明细；她收到更新后的水单邮件，水单页可继续加
+
+`resubmit`（再唱一首）只换录音不动菜；`addOrder` 只加菜不动录音——两者互不干扰。
+
 ### Media storage — D1 by default (recommended for personal use)
 
 With no R2 binding, songs and photos are stored **base64-encoded in D1**. No bucket to create, no extra cost, and the 3-day GC keeps the footprint small (a ~60s recording is roughly 60–100KB).
@@ -205,7 +231,7 @@ rcj-dinner/
 │  ├─ _config.js              # brand / menu / email templates (change these to rebrand)
 │  ├─ _notify.js              # two-way email (notifyOwner / notifyGuest)
 │  ├─ config.js               # GET /api/config?k=<code> (gate + load menu)
-│  ├─ order.js                # POST /api/order (new order / re-sing)
+│  ├─ order.js                # POST /api/order (new order / re-sing / add dishes)
 │  ├─ order/status.js         # GET progress
 │  ├─ order/media/[id].js     # GET media binary
 │  ├─ admin/login.js          # login / session

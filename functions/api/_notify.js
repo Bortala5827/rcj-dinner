@@ -6,9 +6,9 @@
 
 import { cfg, fmtTime, sendMail, sendTG, logEvent, getOwnerEmail } from './_lib.js';
 import { brand } from './_config.js';
-import { mailOwnerNew, mailGuestReceived, mailGuestCooking, mailGuestRetry, mailGuestServed } from './_config.js';
+import { mailOwnerNew, mailGuestReceived, mailGuestCooking, mailGuestRetry, mailGuestServed, mailGuestAdded } from './_config.js';
 
-export async function notifyOwner(env, q, order, dishes, { resang = false, photoCount = 0, hasSong = false } = {}) {
+export async function notifyOwner(env, q, order, dishes, { resang = false, photoCount = 0, hasSong = false, added = 0 } = {}) {
   const c = cfg(env);
   const ownerEmail = await getOwnerEmail(env, q);
   const b = brand(env);
@@ -17,7 +17,7 @@ export async function notifyOwner(env, q, order, dishes, { resang = false, photo
   const results = [];
 
   if (ownerEmail) {
-    const m = mailOwnerNew({ b, order, dishes, when, site, photoCount, hasSong, resang });
+    const m = mailOwnerNew({ b, order, dishes, when, site, photoCount, hasSong, resang, added });
     const r = await sendMail(env, { to: ownerEmail, subject: m.subject, html: m.html, replyTo: order.guest_email });
     results.push('mail:' + (r.ok ? 'ok' : r.error));
   } else {
@@ -26,9 +26,9 @@ export async function notifyOwner(env, q, order, dishes, { resang = false, photo
 
   const tg = await sendTG(
     env,
-    `【${b.nameZh}】${resang ? '又唱了一首' : '有新点单'}\n${when}\n` +
+    `【${b.nameZh}】${resang ? '又唱了一首' : added > 0 ? '她加菜了' : '有新点单'}\n${when}\n` +
       `${order.guest_name || order.guest_email}\n` +
-      `点了：${(dishes || []).map((d) => d.name).join('、') || '（只写了想吃的）'}\n` +
+      `现在点了：${(dishes || []).map((d) => d.name).join('、') || '（只写了想吃的）'}\n` +
       `${order.wish ? '还想吃：' + order.wish + '\n' : ''}` +
       `进后台：${site}/admin?focus=${order.id}`
   );
@@ -48,6 +48,7 @@ export async function notifyGuest(env, q, order, dishes, kind) {
 
   let m = null;
   if (kind === 'received') m = mailGuestReceived({ b, order, dishes, when, statusUrl });
+  else if (kind === 'added') m = mailGuestAdded({ b, order, dishes, when, statusUrl });
   else if (kind === 'cooking') m = mailGuestCooking({ b, order, dishes, when, statusUrl });
   else if (kind === 'retry') m = mailGuestRetry({ b, order, when, retryUrl: statusUrl });
   else if (kind === 'served') m = mailGuestServed({ b, order, dishes, when });
