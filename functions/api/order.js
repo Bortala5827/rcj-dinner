@@ -25,6 +25,26 @@ function b64Bytes(s) {
   return Math.floor((pure.length * 3) / 4);
 }
 
+// 重唱 / 加菜分支的冷却限流（防刷邮件轰炸）：
+//   ① 同一单近 COOL_MS 分钟内最多 maxPerOrder 次（快速连点兜底）；
+//   ② 同一邀请码近 24h 内该类操作最多 dailyLimit 次（与新单日限同口径）。
+// 正常流程（一次打回重唱 / 偶尔加一两次菜）远低于阈值，不影响使用。
+const COOL_MS = 10 * 60 * 1000;
+async function branchThrottle(q, code, orderId, type, now, c, maxPerOrder = 3) {
+  const mine = await q.first(
+    'SELECT COUNT(*) AS n FROM dinner_events WHERE order_id = ? AND type = ? AND created > ?',
+    [orderId, type, now - COOL_MS]
+  );
+  if (Number(mine && mine.n) >= maxPerOrder) return '手速太快了，歇一会儿再试';
+  const codeHits = await q.first(
+    `SELECT COUNT(*) AS n FROM dinner_events e JOIN dinner_orders o ON o.id = e.order_id
+       WHERE o.code = ? AND e.type = ? AND e.created > ?`,
+    [code, type, now - DAY]
+  );
+  if (Number(codeHits && codeHits.n) >= c.dailyLimit) return '今天这类操作够多了，明天再来';
+  return null;
+}
+
 export async function onRequestPost(ctx) {
   const { request, env } = ctx;
 
@@ -69,6 +89,10 @@ export async function onRequestPost(ctx) {
     if (o.status !== 'retry') return json({ ok: false, error: '这张单现在不需要重唱' }, 409);
     if (Number(o.purged)) return json({ ok: false, error: '这张单太久了，重新点一次吧' }, 409);
 
+    // 冷却限流：防同一单/同一码反复重唱刷站长邮件
+    const tbResing = await branchThrottle(q, code, resubmitId, 'resang', now, c);
+    if (tbResing) return json({ ok: false, error: tbResing }, 429);
+
     const song = body.song || {};
     if (!song.data) return json({ ok: false, error: '没收到录音' }, 400);
     if (b64Bytes(song.data) > c.maxSongBytes) return json({ ok: false, error: `录音太大（上限 ${Math.round(c.maxSongBytes / 1024)}KB）` }, 400);
@@ -108,6 +132,10 @@ export async function onRequestPost(ctx) {
     if (o.status !== 'pending' && o.status !== 'cooking') {
       return json({ ok: false, error: o.status === 'served' ? '已经上菜了，下次再点吧' : '这张单现在不能加菜' }, 409);
     }
+
+    // 冷却限流：防反复加菜刷站长/她的邮件
+    const tbAdd = await branchThrottle(q, code, addOrderId, 'added', now, c);
+    if (tbAdd) return json({ ok: false, error: tbAdd }, 429);
 
     // 新菜品：只认菜单里存在的 id；同 id 合并数量（上限 9），新菜追加（总量上限 12 项）
     const idx = menuIndex(env);
